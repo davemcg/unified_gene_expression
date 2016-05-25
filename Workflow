@@ -1,4 +1,4 @@
-Workflow:
+**Workflow:
 
 1. Align with STAR 2.5.1b, with appropriate sjdbOverhang for different read lengths
 
