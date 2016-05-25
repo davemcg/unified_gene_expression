@@ -1,6 +1,10 @@
-**Workflow:
+**Workflow**
 
-1. Align with STAR 2.5.1b, with appropriate sjdbOverhang for different read lengths
+1. Genome and annotation:
+ - ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_24/gencode.v24.primary_assembly.annotation.gtf.gz
+ - ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_24/GRCh38.primary_assembly.genome.fa.gz
+ 
+2. Create STAR indices, with different indices for different read lengths 
 
 ```
 [mcgaugheyd@biowulf GRCh38]$ cat create_STAR_index.sh 
@@ -28,3 +32,4 @@ STAR \
  sbatch --cpus-per-task 10 --mem=30G create_STAR_index.sh 100
  sbatch --cpus-per-task 10 --mem=30G create_STAR_index.sh 129
 ```
+3. Align with STAR 2.5.1b, with appropriate sjdbOverhang for different read lengths
