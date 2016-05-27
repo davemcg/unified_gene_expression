@@ -15,12 +15,15 @@ sra_info[14,'Library_Name_s'] <- "GSM1099814: H1RPE.ksr.061511"
 sra_info[15,'Library_Name_s'] <- "GSM1099815: H9RPE.ksr.041511"
 sra_info[16,'Library_Name_s'] <- "GSM1099816: H9RPE.ksr.060311"
 
+# hand-edit tissue
+sra_info$tissue_s <- c("Retina",rep("RPE",8),rep("Retina",3),rep("RPE",4))
+
 # begin plotting reshaping
 lengthScaledTPM$Gene <- row.names(lengthScaledTPM)
 melt_lSTPM <- melt(lengthScaledTPM)
-metaData_lSTPM <- merge(melt_lSTPM,sra_info[,c("Run_s","SRA_Study_s","Library_Name_s")],by.x="variable",by.y="Run_s")
+metaData_lSTPM <- merge(melt_lSTPM,sra_info[,c("Run_s","SRA_Study_s","Library_Name_s","tissue_s")],by.x="variable",by.y="Run_s")
 
-ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Library_Name_s,y=log2(value+1))) + 
+ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Library_Name_s,y=log2(value+1),colour=tissue_s)) + 
   geom_point() + facet_grid(~SRA_Study_s,space='free',scales='free') + 
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  ylab("log2(lengthScaledTPM+1) Gene Expression")
+  ylab("Gene Expression | log2(lengthScaledTPM+1) ")
