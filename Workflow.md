@@ -6,6 +6,7 @@
  - ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_24/gencode.v24.metadata.HGNC.gz
  
 2. Going cutting edge and using kallisto for alignment. Why? Speed. I'd also really like to try Salmon, which also looks fabulous.
+	https://github.com/davemcg/biowulf2-bin/blob/master/kallisto_quant.sh
 	```
 	[mcgaugheyd@biowulf public_RNA-seq]$ cat kallisto_quant.sh 
 	#!/bin/bash
@@ -18,7 +19,8 @@
                	       -t $SLURM_CPUS_PER_TASK \
 		       $1 $2
 	```
-	Different script for single end. Have to explicitly give insert size (usually 200) and SD (usually 50)
+	Different script for single end. Have to explicitly give insert size (usually 200) and SD (usually 50).
+	https://github.com/davemcg/biowulf2-bin/blob/master/kallisto_quant_single.sh
 	```
 	[mcgaugheyd@biowulf public_RNA-seq]$ cat kallisto_quant_single.sh 
 	#!/bin/bash
