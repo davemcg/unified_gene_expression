@@ -36,7 +36,6 @@ kallisto quant -i /data/mcgaugheyd/genomes/GRCh38/0.42.4_Homo_sapiens.GRCh38.rel
 			   --single -l $frag_length -s $frag_sd  \
 			   $fastq1
 ```
- 
 3. Next is calculating some kind of RPKM/FPKM/TPM score that will semi-accurately reflect gene expression across a wide variety of library sizes. Another significant issue is reducing multiple transcripts into each gene. After lots of Googling, I've found the following useful readings:
  - http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
  - http://f1000research.com/articles/4-1521/v1
