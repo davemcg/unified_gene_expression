@@ -43,6 +43,7 @@
  - http://f1000research.com/articles/4-1521/v1
  - https://www.biostars.org/p/143458/
  - https://benchtobioinformatics.wordpress.com/2015/07/10/using-kallisto-for-gene-expression-analysis-of-published-rnaseq-data/
+ - https://liorpachter.wordpress.com/2014/04/30/estimating-number-of-transcripts-from-rna-seq-measurements-and-why-i-believe-in-paywall
  - https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/
 
 	I ended up going with the Mike Love tximport tool, which deals with both core issues: aggregating transcripts to gene and performing a TPM-like calculation to normalize counts/expression by transcript length and library size (lengthScaledTPM). My implementation is done in R with calculate_lengthScaledTPM.R (https://github.com/davemcg/unified_gene_expression/blob/master/calculate_lengthScaledTPM.R).
