@@ -37,6 +37,11 @@ kallisto quant -i /data/mcgaugheyd/genomes/GRCh38/0.42.4_Homo_sapiens.GRCh38.rel
 			   $fastq1
 ```
  
- 
- 
+3. Next is calculating some kind of RPKM/FPKM/TPM score that will semi-accurately reflect gene expression across a wide variety of library sizes. Another significant issue is reducing multiple transcripts into each gene. After lots of Googling, I've found the following useful readings:
+ - http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
+ - http://f1000research.com/articles/4-1521/v1
+ - https://www.biostars.org/p/143458/
+ - https://benchtobioinformatics.wordpress.com/2015/07/10/using-kallisto-for-gene-expression-analysis-of-published-rnaseq-data/
+ - https://haroldpimentel.wordpress.com/2014/05/08/what-the-fpkm-a-review-rna-seq-expression-units/
+I ended up going with the Mike Love tximport tool, which deals with both core issues: aggregating transcripts to gene and performing a TPM-like calculation to normalize counts/expression by transcript length and library size (lengthScaledTPM). My implementation is done in R with calculate_lengthScaledTPM.R (https://github.com/davemcg/unified_gene_expression/blob/master/calculate_lengthScaledTPM.R).
  
