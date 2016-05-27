@@ -5,7 +5,7 @@
  - ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_24/GRCh38.primary_assembly.genome.fa.gz
  - ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_24/gencode.v24.metadata.HGNC.gz
  
-2. Going cutting edge and using kallisto for alignment. Why? Speed. I'd also really like to try Salmon, which also looks fabulous.
+2. Going cutting edge and using kallisto for reference-free transcrdipt alignment. Why? Speed. I'd also really like to try Salmon, which looks fabulous.
 	https://github.com/davemcg/biowulf2-bin/blob/master/kallisto_quant.sh
 	```
 	[mcgaugheyd@biowulf public_RNA-seq]$ cat kallisto_quant.sh 
@@ -49,5 +49,9 @@
 	I ended up going with the Mike Love tximport tool, which deals with both core issues: aggregating transcripts to gene and performing a TPM-like calculation to normalize counts/expression by transcript length and library size (lengthScaledTPM). My implementation is done in R with calculate_lengthScaledTPM.R (https://github.com/davemcg/unified_gene_expression/blob/master/calculate_lengthScaledTPM.R).
 
 4. Next is massaging the SRA metadata to better name the files, since they are currently labeled with "SRRlotsofdigits." For now I'll just re-name the files to reflect the cell type and source (something like "RPE_fetal" or "RPE_iPSC"). It's going to be ugly. I was hoping to use some kind of R package (SRAdb?) to pull the info I needed automatically, but I can't get anything to work. Since the plan is to hand-curate this data source, for now it is reasonable to just hand-pull the info. The two sources I'm using to get meta-data are https://www.ebi.ac.uk and http://www.ncbi.nlm.nih.gov/Traces/study/ . The former contains the fastq ftp links with some basic info on the experiment. The latter has more granular info on the biological info on the experiment.
-5. Then I'll need to figure out some way of displaying/sharing the data with OGVFB. This will likely be very tricky. The current plan is to run a Shiny web-app on Cyclops that will allow users to type a gene name in and get the lengthScaledTPM scores across the tissues (medians for replicates?) along with some basic stats (rank/decile expression scoring?).
+ - The code that adds the meta-data and gives example plots:
+ 	- https://github.com/davemcg/unified_gene_expression/blob/master/plot_by_gene.R
+5. Then I'll need to figure out some way of displaying/sharing the data with OGVFB. ~~This will likely be very tricky~~. The current plan is to run a Shiny web-app on Cyclops that will allow users to type a gene name in and get the lengthScaledTPM scores across the tissues (medians for replicates?) along with some basic stats (rank/decile expression scoring?). Put ui.R and server.R on Cyclops along with data files metaData_with_lengthScaledTPM.Rdata and all_human_genes.Rdata (both derived from plot_by_gene.R)
+6. http://cyclops.nei.nih.gov:3838/unified_gene_expression/
+	- only works in NIH/NEI
 
