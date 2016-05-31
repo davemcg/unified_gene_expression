@@ -27,3 +27,19 @@ ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Library_Name_s,y=log2(val
   geom_point() + facet_grid(~SRA_Study_s,space='free',scales='free') + 
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylab("Gene Expression | log2(lengthScaledTPM+1) ")
+
+### make a heatmap
+library(pheatmap)
+library("RColorBrewer")
+## rename SRR to library names
+# first move row.names to column
+test<- data.frame(t(lengthScaledTPM)) %>% dplyr::add_rownames(var="SRR") 
+# left_join with dplyr
+data_f <- left_join(data.frame(test),data.frame(sra_info[,c("Run_s","Library_Name_s")]),by=c("SRR"="Run_s"))
+# move Library names to row.names
+row.names(data_f)<-data_f$Library_Name_s
+# remove extraneous columns
+data_f <- data_f[,2:27238]
+
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
