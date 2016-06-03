@@ -45,9 +45,29 @@ colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
 
 #### t-sne (PCA-like)
-library(tsne)
+library(Rtsne)
+library(ggrepel)
+tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:16])+1)),perplexity = 3)
+# Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$SRR <- colnames(lengthScaledTPM[,1:16])
+tsne_plot <- left_join(tsne_plot,sra_info,by=c("SRR"="Run_s"))
+ggplot(tsne_plot,aes(x=X1,y=X2,label=SRR,shape=tissue_s,colour=SRA_Study_s)) + 
+  geom_text_repel() + geom_point() + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
+
+
+
+##### pca 
 # first get top 500 genes by variance
 vars<-apply(lengthScaledTPM,1,function(x) var(x))
-top500<-names(head(sort(-vars),n=500))
-lengthScaledTPM_topVar<-lengthScaledTPM[top500,]
-plot(tsne(as.matrix(log(t(lengthScaledTPM_topVar[,1:16])+1))))
+topX<-names(head(sort(-vars),n=5000))
+lengthScaledTPM_topVar<-lengthScaledTPM[topX,]
+pca <- prcomp(log(t(lengthScaledTPM_topVar[,1:16])+1))
+pca_data<-data.frame(pca$x)
+pca_data$SRR <- row.names(pca_data)
+pca_data <- left_join(pca_data,sra_info,by=c("SRR"="Run_s"))
+# show stdev for each PC
+plot(pca)
+# plot pca mapping
+ggplot(data=pca_data,aes(x=PC1,y=PC2, colour=SRA_Study_s, label=SRR, shape=tissue_s)) + 
+  geom_text_repel() + geom_point() + theme_bw()
