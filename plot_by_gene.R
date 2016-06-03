@@ -30,7 +30,7 @@ ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Library_Name_s,y=log2(val
 
 ### make a heatmap
 library(pheatmap)
-library("RColorBrewer")
+library(RColorBrewer)
 ## rename SRR to library names
 # first move row.names to column
 test<- data.frame(t(lengthScaledTPM)) %>% dplyr::add_rownames(var="SRR") 
@@ -43,3 +43,11 @@ data_f <- data_f[,2:27238]
 
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
+
+#### t-sne (PCA-like)
+library(tsne)
+# first get top 500 genes by variance
+vars<-apply(lengthScaledTPM,1,function(x) var(x))
+top500<-names(head(sort(-vars),n=500))
+lengthScaledTPM_topVar<-lengthScaledTPM[top500,]
+plot(tsne(as.matrix(log(t(lengthScaledTPM_topVar[,1:16])+1))))
