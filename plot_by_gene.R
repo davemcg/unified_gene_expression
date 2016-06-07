@@ -69,5 +69,5 @@ pca_data <- left_join(pca_data,sra_info,by=c("SRR"="Run_s"))
 # show stdev for each PC
 plot(pca)
 # plot pca mapping
-ggplot(data=pca_data,aes(x=PC1,y=PC2, colour=SRA_Study_s, label=SRR, shape=tissue_s)) + 
+ggplot(data=pca_data,aes(x=PC1,y=PC2, colour=SRA_Study_s, label=Library_Name_s, shape=tissue_s)) + 
   geom_text_repel() + geom_point() + theme_bw()
