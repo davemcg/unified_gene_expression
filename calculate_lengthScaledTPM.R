@@ -8,10 +8,11 @@ library(readr)
 
 # get file paths of kallisto counts
 load('fastq_info.Rdata')
-files <- file.path('~/Desktop/kallisto',paste(fastq_info$run_accession,'_kallisto',sep=''),'abundance.tsv')
+#files <- file.path('~/Desktop/kallisto',paste(fastq_info$run_accession,'_kallisto',sep=''),'abundance.tsv')
+files <- paste(list.files(path='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/E-MTAB-4377',pattern=".*kallisto",full.names = TRUE), '/abundance.tsv',sep='')
 
 # convert ensembl tx to gene names
-hgnc <- fread('gencode.v24.metadata.HGNC')
+hgnc <- fread('~/git/unified_gene_expression/gencode.v24.metadata.HGNC')
 tx2gene <- data.frame(hgnc)
 colnames(tx2gene) <- c("TXNAME","GENEID")
 
