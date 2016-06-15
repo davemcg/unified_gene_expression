@@ -1,16 +1,13 @@
 library(tximport)
 library(data.table)
-library(tximport)
 library(readr)
 
 # thank our noodly lord for Love
 # http://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
 
 # get file paths of kallisto counts
-load('fastq_info.Rdata')
 #files <- file.path('~/Desktop/kallisto',paste(fastq_info$run_accession,'_kallisto',sep=''),'abundance.tsv')
-files <- paste(list.files(path='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/E-MTAB-4377',pattern=".*kallisto",full.names = TRUE), '/abundance.tsv',sep='')
-
+files <- paste(list.files(path='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression', pattern=".*.*_kallisto", full.names=TRUE, include.dirs=TRUE, recursive=TRUE), '/abundance.tsv', sep='')
 # convert ensembl tx to gene names
 hgnc <- fread('~/git/unified_gene_expression/gencode.v24.metadata.HGNC')
 tx2gene <- data.frame(hgnc)
@@ -24,5 +21,9 @@ lengthScaledTPM <- data.frame(txi.lengthScaledTPM$counts)
 # now we have a matrix with each experiment/run in a column and the gene counts (lengthScaledTPM)
 # for each row
 
-# but we need to add the SRA names back to the columns
-colnames(lengthScaledTPM) <- fastq_info$run_accession
+# but we need to add the names back to the columns, taken from the _kallisto folder names
+names <- sapply(files, function(x) strsplit(x,"\\/|_kallisto")[[1]][8])
+
+# save
+# head over to plot_by_gene.R
+save(lengthScaledTPM,file="lengthScaledTPM.Rdata")
