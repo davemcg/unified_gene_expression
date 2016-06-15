@@ -6,7 +6,7 @@
 library(data.table)
 library(RSQLite)
 library(dplyr)
-
+library(stringr)
 # open sql database
 con <- dbConnect(RSQLite::SQLite(), "metaData.sqlite")
 
@@ -15,6 +15,7 @@ arrayExpress_accessions <- c("E-GEOD-22765","E-GEOD-36695","E-GEOD-40524")
     # this one had to be modified slightly to make fake "Source Name" match up with the main table
     # I hope this to be a rare case, and thus can fully automate the import 
     # manually add E-MTAB-4377
+    open("E_MTAB_4377_metaData.Rdata")
     dbWriteTable(con,"E_MTAB_4377",e.mtab.4377)
 for(i in arrayExpress_accessions){
   base_url <- "https://www.ebi.ac.uk/arrayexpress/files/"
@@ -22,8 +23,17 @@ for(i in arrayExpress_accessions){
   end_url <- paste(end_url,collapse="")
   url <- paste(base_url,end_url,sep="")
   # import and force columns to be unique with base make.unique()
-  ae_metadata <- fread(url,check.names="TRUE")
+  ae_metadata <- fread(url,check.names=TRUE)
+  # replace default accession dash with underscore
   db_name <- toupper(gsub("-","_",i))
+  # replace special characters with _
+  new_colnames <- str_replace_all(colnames(ae_metadata), "[^[:alnum:]]", "_")
+  # remove trailing _
+  new_colnames <- gsub("_+$","",new_colnames)
+  # remove any runs of __ with _
+  new_colnames <- gsub("_+","_",new_colnames)
+  colnames(ae_metadata) <- new_colnames
+  
   current_tables <- dbListTables(con)
   if (!(db_name %in% current_tables)) {
     dbWriteTable(con,db_name,ae_metadata)
@@ -57,3 +67,29 @@ dbFetch(rs)
 # just prints out the ArrayExpress experiments
 rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM ena_metadata")
 unique(dbFetch(rs))
+# show metadata available for E_GEOD_40524
+rs <- dbSendQuery(con, "SELECT * FROM E_GEOD_40524")
+dbFetch(rs)
+# show ena run info for E_GEOD_40524 joined with ena_metadata
+rs <- dbSendQuery(con, "SELECT * FROM E_GEOD_40524
+                  JOIN ena_metadata
+                  ON ena_metadata.experiment_accession =
+                  E_GEOD_40524.`Comment [ENA_EXPERIMENT]` ")
+# print first row for each arrayexpress metadata table to see column names
+# easier and more readable to just run sqlite metaData.sqlite '.schema' in bash
+rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM ena_metadata")
+for(table in unique(dbFetch(rs)$ArrayExpressAccession)){
+  print(table)
+  sql_query <- c("SELECT * FROM ", table, " JOIN ena_metadata ON ena_metadata.experiment_accession = ", 
+                 table,".Comment_ENA_EXPERIMENT LIMIT 1")
+  sql_query <- paste(sql_query,collapse="")
+  rs <- dbSendQuery(con, sql_query)
+  print(dbFetch(rs))
+  print("")
+  }
+
+
+###########
+
+# close connection
+dbDisconnect(con)
