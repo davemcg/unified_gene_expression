@@ -3,28 +3,23 @@ library(data.table)
 library(ggplot2)
 library(reshape2)
 library(dplyr)
+library(RSQLite)
 
+# grab lengthScaledTPM data from calculate_lengthScaledTPM.R
 load("lengthScaledTPM.Rdata")
-load('fastq_info.Rdata')
-sra_info <- fread('SraRunTable.txt')
 
-# hand-fix missing info
-sra_info <- data.frame(sra_info)
-sra_info[13,'Library_Name_s'] <- 'GSM1099813: hfRPESeq072611'
-sra_info[14,'Library_Name_s'] <- "GSM1099814: H1RPE.ksr.061511"
-sra_info[15,'Library_Name_s'] <- "GSM1099815: H9RPE.ksr.041511"
-sra_info[16,'Library_Name_s'] <- "GSM1099816: H9RPE.ksr.060311"
-
-# hand-edit tissue
-sra_info$tissue_s <- c("Retina",rep("RPE",8),rep("Retina",3),rep("RPE",4))
+# grab metadata (massaged/created code in metadata_to_sqlite.R)
+con <- dbConnect(RSQLite::SQLite(), "metaData.sqlite")
+core_data <- dbReadTable(con,"core_data")
 
 # begin plotting reshaping
 lengthScaledTPM$Gene <- row.names(lengthScaledTPM)
 melt_lSTPM <- melt(lengthScaledTPM)
-metaData_lSTPM <- merge(melt_lSTPM,sra_info[,c("Run_s","SRA_Study_s","Library_Name_s","tissue_s")],by.x="variable",by.y="Run_s")
+colnames(melt_lSTPM) <- c("Gene","run_accession","lsTPM")
+metaData_lSTPM <- full_join(melt_lSTPM,core_data[,c("ArrayExpressAccession","run_accession","scientific_name","Name","Tissue","Tissue_Source")])
 
-ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Library_Name_s,y=log2(value+1),colour=tissue_s)) + 
-  geom_point() + facet_grid(~SRA_Study_s,space='free',scales='free') + 
+ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Name,y=log2(lsTPM+1),colour=Tissue_Source)) + 
+  geom_point() + facet_grid(~ArrayExpressAccession,space='free',scales='free') + 
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylab("Gene Expression | log2(lengthScaledTPM+1) ")
 
@@ -47,13 +42,13 @@ pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
 #### t-sne (PCA-like)
 library(Rtsne)
 library(ggrepel)
-tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:16])+1)),perplexity = 3)
+tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:66])+1)),perplexity = 10)
 # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$SRR <- colnames(lengthScaledTPM[,1:16])
-tsne_plot <- left_join(tsne_plot,sra_info,by=c("SRR"="Run_s"))
-ggplot(tsne_plot,aes(x=X1,y=X2,label=SRR,shape=tissue_s,colour=SRA_Study_s)) + 
-  geom_text_repel() + geom_point() + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
+tsne_plot$run_accession <- colnames(lengthScaledTPM[,1:66])
+tsne_plot <- left_join(tsne_plot,core_data,by=c("run_accession"="run_accession"))
+ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=Tissue_Source,shape=ArrayExpressAccession)) + 
+  geom_text_repel() + geom_point(size=3) + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
 
 
 
