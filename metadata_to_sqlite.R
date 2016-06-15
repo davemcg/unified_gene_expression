@@ -42,7 +42,7 @@ for(i in arrayExpress_accessions){
 }
 
 
-open("ena_metadata.Rdata")
+open("core_data.Rdata")
 # the above is a hand massaged info pulled from EBI ENA Study "Read File" info.
   # see notes for my comments
   # I also hand add the GEO ID and ArrayExpress Accession
@@ -52,41 +52,53 @@ open("ena_metadata.Rdata")
 # not sure how to quickly do this, since the SRPXXXXXXX is not in the array expressed metadata, unfortunately
 # so for now, just have to use the website
 
-# manually add ena_metadata table
+# manually add core_data table
 # can either drop and re-add in the future as I add more experiments
 # which isn't ideal, but easier
 # or do sql queries
-dbWriteTable(con,"ena_metadata",ena_metadata)
+dbWriteTable(con,"core_data",core_data)
 
 
 # example queries
-# print out ena_metadata, which holds the core info (ena run info) for the R plotting
+# print out core_data, which holds the core info (ena run info) for the R plotting
 # more granular info comes from the individual tables for each experiment
-rs <- dbSendQuery(con,"SELECT * FROM ena_metadata")
+rs <- dbSendQuery(con,"SELECT * FROM core_data")
 dbFetch(rs)
 # just prints out the ArrayExpress experiments
-rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM ena_metadata")
+rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM core_data")
 unique(dbFetch(rs))
 # show metadata available for E_GEOD_40524
 rs <- dbSendQuery(con, "SELECT * FROM E_GEOD_40524")
 dbFetch(rs)
-# show ena run info for E_GEOD_40524 joined with ena_metadata
+# show ena run info for E_GEOD_40524 joined with core_data
 rs <- dbSendQuery(con, "SELECT * FROM E_GEOD_40524
-                  JOIN ena_metadata
-                  ON ena_metadata.experiment_accession =
+                  JOIN core_data
+                  ON core_data.experiment_accession =
                   E_GEOD_40524.`Comment [ENA_EXPERIMENT]` ")
 # print first row for each arrayexpress metadata table to see column names
-# easier and more readable to just run sqlite metaData.sqlite '.schema' in bash
-rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM ena_metadata")
+# BUT easier and more readable to just run sqlite metaData.sqlite '.schema' in bash
+rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM core_data")
 for(table in unique(dbFetch(rs)$ArrayExpressAccession)){
   print(table)
-  sql_query <- c("SELECT * FROM ", table, " JOIN ena_metadata ON ena_metadata.experiment_accession = ", 
+  sql_query <- c("SELECT * FROM ", table, " JOIN core_data ON core_data.experiment_accession = ", 
                  table,".Comment_ENA_EXPERIMENT LIMIT 1")
   sql_query <- paste(sql_query,collapse="")
   rs <- dbSendQuery(con, sql_query)
   print(dbFetch(rs))
   print("")
   }
+
+#prints all across each
+rs <- dbSendQuery(con,"SELECT ArrayExpressAccession FROM core_data")
+for(table in unique(dbFetch(rs)$ArrayExpressAccession)){
+  print(table)
+  sql_query <- c("SELECT * FROM ", table)
+  sql_query <- paste(sql_query,collapse="")
+  rs <- dbSendQuery(con, sql_query)
+  print(dbFetch(rs))
+  print("")
+}
+
 
 
 ###########
