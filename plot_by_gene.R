@@ -42,10 +42,11 @@ pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
 #### t-sne (PCA-like)
 library(Rtsne)
 library(ggrepel)
-tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:66])+1)),perplexity = 10)
+experiments <- ncol(lengthScaledTPM)-1
+tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:experiments])+1)),perplexity = 5)
 # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$run_accession <- colnames(lengthScaledTPM[,1:66])
+tsne_plot$run_accession <- colnames(lengthScaledTPM[,1:experiments])
 tsne_plot <- left_join(tsne_plot,core_data,by=c("run_accession"="run_accession"))
 ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=Tissue_Source,shape=ArrayExpressAccession)) + 
   geom_text_repel() + geom_point(size=3) + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
@@ -54,15 +55,17 @@ ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=Tissue_Source,shape=ArrayExpres
 
 ##### pca 
 # first get top 500 genes by variance
-vars<-apply(lengthScaledTPM,1,function(x) var(x))
-topX<-names(head(sort(-vars),n=5000))
-lengthScaledTPM_topVar<-lengthScaledTPM[topX,]
-pca <- prcomp(log(t(lengthScaledTPM_topVar[,1:16])+1))
+# hand-pull out outlier "E-MTAB-4377.RNA11"
+lengthScaledTPMc <- lengthScaledTPM %>% select(-contains("E-MTAB-4377.RNA11"))
+vars<-apply(lengthScaledTPMc,1,function(x) var(x))
+topX<-names(head(sort(-vars),n=500))
+lengthScaledTPM_topVar<-lengthScaledTPMc[topX,]
+pca <- prcomp(log(t(lengthScaledTPM_topVar[,1:experiments])+1))
 pca_data<-data.frame(pca$x)
-pca_data$SRR <- row.names(pca_data)
-pca_data <- left_join(pca_data,sra_info,by=c("SRR"="Run_s"))
+pca_data$run_accession <- row.names(pca_data)
+pca_data <- left_join(pca_data,core_data,by=c("run_accession"="run_accession"))
 # show stdev for each PC
 plot(pca)
 # plot pca mapping
-ggplot(data=pca_data,aes(x=PC1,y=PC2, colour=SRA_Study_s, label=Library_Name_s, shape=tissue_s)) + 
+ggplot(data=pca_data,aes(x=PC1,y=PC2, colour=Tissue, label=run_accession, shape=ArrayExpressAccession)) + 
   geom_text_repel() + geom_point() + theme_bw()
