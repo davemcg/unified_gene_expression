@@ -23,6 +23,7 @@ lengthScaledTPM <- data.frame(txi.lengthScaledTPM$counts)
 
 # but we need to add the names back to the columns, taken from the _kallisto folder names
 names <- sapply(files, function(x) strsplit(x,"\\/|_kallisto")[[1]][8])
+colnames(lengthScaledTPM) <- names
 
 # save
 # head over to plot_by_gene.R
