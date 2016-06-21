@@ -11,7 +11,7 @@ library(stringr)
 con <- dbConnect(RSQLite::SQLite(), "metaData.sqlite")
 
 # add to this vector as you bring in more experiments
-arrayExpress_accessions <- c("E-GEOD-22765","E-GEOD-36695","E-GEOD-40524","E-MTAB-513")
+arrayExpress_accessions <- c("E-GEOD-22765","E-GEOD-36695","E-GEOD-40524","E-MTAB-513","E-MTAB-3716")
   # E-MTAB-4377 not here because: 
     # this one had to be modified slightly to make fake "Source Name" match up with the main table
     # I hope this to be a rare case, and thus can fully automate the import 
