@@ -23,12 +23,22 @@ ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Name,y=log2(lsTPM+1),colo
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylab("Gene Expression | log2(lengthScaledTPM+1) ")
 
+### remove outlier
+lengthScaledTPMc <- lengthScaledTPM %>% select(-contains("E-MTAB-4377.RNA11"))
+experiments <- ncol(lengthScaledTPMc)-1
+
 ### make a heatmap
 library(pheatmap)
+library(NMF) #aheatmap
 library(RColorBrewer)
-## rename SRR to library names
-# first move row.names to column
-test<- data.frame(t(lengthScaledTPM)) %>% dplyr::add_rownames(var="SRR") 
+data_heatmap <- log2(t(lengthScaledTPMc[,1:experiments]+1))
+ann_heatmap <- data.frame(row.names(data_heatmap))
+colnames(ann_heatmap) <- c("run_accession")
+ann_heatmap <- left_join(ann_heatmap,core_data,by=c("run_accession"="run_accession"))
+
+data_heatmap <- as.matrix(dist(data_heatmap))
+aheatmap(data_heatmap,annCol=ann_heatmap$Tissue_Source)
+
 # left_join with dplyr
 data_f <- left_join(data.frame(test),data.frame(sra_info[,c("Run_s","Library_Name_s")]),by=c("SRR"="Run_s"))
 # move Library names to row.names
@@ -42,13 +52,13 @@ pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
 #### t-sne (PCA-like)
 library(Rtsne)
 library(ggrepel)
-experiments <- ncol(lengthScaledTPM)-1
-tsne_out <- Rtsne(as.matrix(log(t(lengthScaledTPM[,1:experiments])+1)),perplexity = 5)
+experiments <- ncol(lengthScaledTPMc)-1
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPMc[,1:experiments])+1)),perplexity = 10)
 # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$run_accession <- colnames(lengthScaledTPM[,1:experiments])
+tsne_plot$run_accession <- colnames(lengthScaledTPMc[,1:experiments])
 tsne_plot <- left_join(tsne_plot,core_data,by=c("run_accession"="run_accession"))
-ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=Tissue_Source,shape=ArrayExpressAccession)) + 
+ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=toupper(Tissue),shape=ArrayExpressAccession)) + 
   geom_text_repel() + geom_point(size=3) + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
 
 
@@ -56,11 +66,11 @@ ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=Tissue_Source,shape=ArrayExpres
 ##### pca 
 # first get top 500 genes by variance
 # hand-pull out outlier "E-MTAB-4377.RNA11"
-lengthScaledTPMc <- lengthScaledTPM %>% select(-contains("E-MTAB-4377.RNA11"))
+
 vars<-apply(lengthScaledTPMc,1,function(x) var(x))
 topX<-names(head(sort(-vars),n=500))
 lengthScaledTPM_topVar<-lengthScaledTPMc[topX,]
-pca <- prcomp(log(t(lengthScaledTPM_topVar[,1:experiments])+1))
+pca <- prcomp(log2(t(lengthScaledTPM_topVar[,1:experiments])+1))
 pca_data<-data.frame(pca$x)
 pca_data$run_accession <- row.names(pca_data)
 pca_data <- left_join(pca_data,core_data,by=c("run_accession"="run_accession"))
