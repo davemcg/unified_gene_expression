@@ -9,9 +9,11 @@ library(readr)
 #files <- file.path('~/Desktop/kallisto',paste(fastq_info$run_accession,'_kallisto',sep=''),'abundance.tsv')
 files <- paste(list.files(path='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression', pattern=".*.*_kallisto", full.names=TRUE, include.dirs=TRUE, recursive=TRUE), '/abundance.tsv', sep='')
 # convert ensembl tx to gene names
-hgnc <- fread('~/git/unified_gene_expression/gencode.v24.metadata.HGNC')
+hgnc <- fread('~/git/unified_gene_expression/gencode.v24.metadata.HGNC',header=F)
 tx2gene <- data.frame(hgnc)
 colnames(tx2gene) <- c("TXNAME","GENEID")
+# add extra info
+tx2gene$TXNAME2 <- sapply(tx2gene$TXNAME,function(x) strsplit(x,'\\.')[[1]][1])
 
 #"scaledTPM", or "lengthScaledTPM", for whether to generate estimated counts using 
 # abundance estimates scaled up to library size (scaledTPM) or additionally scaled 
