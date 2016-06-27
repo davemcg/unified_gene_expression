@@ -18,6 +18,7 @@ melt_lSTPM <- melt(lengthScaledTPM)
 colnames(melt_lSTPM) <- c("Gene","run_accession","lsTPM")
 metaData_lSTPM <- full_join(melt_lSTPM,core_data[,c("ArrayExpressAccession","run_accession","scientific_name","Name","Tissue","Tissue_Source")])
 
+
 ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Name,y=log2(lsTPM+1),colour=Tissue_Source)) + 
   geom_point() + facet_grid(~ArrayExpressAccession,space='free',scales='free') + 
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -25,7 +26,7 @@ ggplot(data=subset(metaData_lSTPM,Gene=='A2MP1'),aes(x=Name,y=log2(lsTPM+1),colo
 
 ### remove outlier
 lengthScaledTPMc <- lengthScaledTPM %>% select(-contains("E-MTAB-4377.RNA11"))
-experiments <- ncol(lengthScaledTPMc)-1
+experiments <- ncol(lengthScaledTPMc)
 
 ### make a heatmap
 library(pheatmap)
@@ -52,15 +53,17 @@ pheatmap(as.matrix(dist(log10(data_f+1))),col=colors)
 #### t-sne (PCA-like)
 library(Rtsne)
 library(ggrepel)
-experiments <- ncol(lengthScaledTPMc)-1
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPMc[,1:experiments])+1)),perplexity = 10)
+experiments <- ncol(lengthScaledTPMc)
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPMc[,1:experiments])+1)),perplexity = 50)
 # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$run_accession <- colnames(lengthScaledTPMc[,1:experiments])
 tsne_plot <- left_join(tsne_plot,core_data,by=c("run_accession"="run_accession"))
-ggplot(tsne_plot,aes(x=X1,y=X2,label=Name,colour=toupper(Tissue),shape=ArrayExpressAccession)) + 
-  geom_text_repel() + geom_point(size=3) + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering")
-
+# calculate number of studies (for setting num of shapes)
+shape_max <- sum(table(tsne_plot$ArrayExpressAccession))
+ggplot(tsne_plot,aes(x=X1,y=X2,label=run_accession,colour=ArrayExpressAccession)) + 
+  geom_text_repel() + geom_point(size=3) + theme_bw() + xlab("") + ylab("") + ggtitle("t-sne Clustering") +
+  scale_shape_manual(values=1:shape_max)
 
 
 ##### pca 
