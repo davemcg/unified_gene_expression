@@ -10,18 +10,22 @@ load('all_human_genes.Rdata')
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Gene Expression for Human Eye Tissues"),
-  
+  titlePanel("Gene Expression for Human Tissues"),
+
   # Sidebar with a slider input for the number of bins
   sidebarLayout(
-    sidebarPanel(
-      selectInput("Gene","Genes:", choices=
-                    all_genes)
-    ),
-    
+    sidebarPanel(width=0),
     # Show a plot of the generated distribution
     mainPanel(
-      plotOutput("distPlot")
+      h3('Interactive boxplot of pan-human gene expression', align="center"),
+      selectInput("Gene","Genes:", choices=all_genes, 
+                  selected='RP1',multiple=TRUE),
+      plotOutput("boxPlot",height=700), 
+      h1(''),
+      h3('Distance between each RNA-seq experiment', align="center"),
+      h5('Closer points are more related',align="center"),
+      img(src='tsne_2016-06-29.svg'), 
+      width='90%'
     )
   )
 ))
