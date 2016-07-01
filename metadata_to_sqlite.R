@@ -8,16 +8,27 @@ library(RSQLite)
 library(dplyr)
 library(stringr)
 # open sql database
-con <- dbConnect(RSQLite::SQLite(), "metaData.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "UGE_metadata.sqlite")
 
 # add to this vector as you bring in more experiments
-arrayExpress_accessions <- c("E-GEOD-22765","E-GEOD-36695","E-GEOD-40524","E-MTAB-513","E-MTAB-3716")
-  # E-MTAB-4377 not here because: 
+arrayExpress_accessions <- c(
+  "E-GEOD-22765",
+  "E-GEOD-36695",
+  "E-GEOD-40524",
+  "E-MTAB-513",
+  "E-MTAB-3716",
+  "E-GEOD-26284",
+  "E-GEOD-3871",
+  "E-MTAB-4344",
+  "E-MTAB-2836")
+
+# E-MTAB-4377 not here because: 
     # this one had to be modified slightly to make fake "Source Name" match up with the main table
     # I hope this to be a rare case, and thus can fully automate the import 
     # manually add E-MTAB-4377
     # open("E_MTAB_4377_metaData.Rdata")
     # dbWriteTable(con,"E_MTAB_4377",e.mtab.4377)
+
 for(i in arrayExpress_accessions){
   base_url <- "https://www.ebi.ac.uk/arrayexpress/files/"
   end_url <- c(i,"/",i,".sdrf.txt")
