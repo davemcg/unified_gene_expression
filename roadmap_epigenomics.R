@@ -91,12 +91,22 @@ fastq_urls <- fastq_urls[-1]
 roadmap_main$comment_fastq_uri <- fastq_urls
 
 
+#load('temp.RData')
 
 # rename columns to match "main" from grabbing arrayExpress info (main_data_db_pull.R)
 colnames(roadmap_main)[which(names(roadmap_main) == "experiment_accession")] <- "comment_ena_experiment"
 colnames(roadmap_main)[which(names(roadmap_main) == "sample_alias")] <- "source_name"
-colnames(roadmap_main)[which(names(roadmap_main) == "submission_accession")] <- "comment_ena_run"
-
+colnames(roadmap_main)[which(names(roadmap_main) == "submission_accession")] <- "project_accession"
+colnames(roadmap_main)[which(names(roadmap_main) == "run_accession")] <- "comment_ena_run"
+colnames(roadmap_main)[which(names(roadmap_main) == "library_layout")] <- "comment_library_layout"
+# roadmap sample names have cell and tissue in the same column
+# breaking out for arrayExpress style
+cell <- roadmap_main$`Sample Name`
+cell[which(!grepl("cell",cell))] <- NA
+roadmap_main$factor_value_cell_line <- cell
+not_cell <- roadmap_main$`Sample Name`
+not_cell[which(grepl("cell",not_cell))] <- NA
+roadmap_main$characteristics_organism_part <- not_cell
 
 
 # only keep the paired-end runs. 
