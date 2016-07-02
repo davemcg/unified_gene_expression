@@ -64,6 +64,12 @@ uge_metadata <- uge_metadata[!(duplicated(uge_metadata)),]
 # convert to data.table
 uge_metadata <- data.table(uge_metadata)
 
+# create main table which holds the crucial info
+# this table is a good start for analysis as it holds
+# run accession, the ftp link for the ebi/ena fastq, 
+# and the tissue
+main <- uge_metadata %>% select(project_accession, source_name, comment_ena_run, comment_ena_experiment, characteristics_organism, characteristics_organism_part, factor_value_cell_line, factor_value_sex, comment_library_layout, comment_fastq_uri)
+
 #############
 # Up to this point, this is a fully automated process
 # However, larger consortium projects tend to maintain their own
@@ -86,11 +92,6 @@ source('roadmap_epigenomics.R')
 
 
 
-# create main table which holds the crucial info
-# this table is a good start for analysis as it holds
-# run accession, the ftp link for the ebi/ena fastq, 
-# and the tissue
-main <- uge_metadata %>% select(project_accession, source_name, comment_ena_run, comment_ena_experiment, characteristics_organism, characteristics_organism_part, factor_value_cell_line, factor_value_sex, comment_library_layout, comment_fastq_uri)
 
 # open sql database
 con <- dbConnect(RSQLite::SQLite(), "UGE_metadata.sqlite")
