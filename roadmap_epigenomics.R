@@ -99,6 +99,8 @@ colnames(roadmap_main)[which(names(roadmap_main) == "sample_alias")] <- "source_
 colnames(roadmap_main)[which(names(roadmap_main) == "submission_accession")] <- "project_accession"
 colnames(roadmap_main)[which(names(roadmap_main) == "run_accession")] <- "comment_ena_run"
 colnames(roadmap_main)[which(names(roadmap_main) == "library_layout")] <- "comment_library_layout"
+roadmap_main$characteristics_organism <- 'Homo sapiens'
+roadmap_main$factor_value_sex <- NA
 # roadmap sample names have cell and tissue in the same column
 # breaking out for arrayExpress style
 cell <- roadmap_main$`Sample Name`
@@ -108,59 +110,7 @@ not_cell <- roadmap_main$`Sample Name`
 not_cell[which(grepl("cell",not_cell))] <- NA
 roadmap_main$characteristics_organism_part <- not_cell
 
-
-# only keep the paired-end runs. 
-roadmap_core <- roadmap_core %>% filter(grepl("PAIRED",library_layout))
-
+# only keep columns shared with main and reorder to match
+roadmap_main <- roadmap_main %>% select(colnames(main))
 
 
-roadmap_core$fastq_ftp <- sapply(roadmap_core$run_accession, function(x) ebi_fastq_PE_link_builder(x))
-# high chance of this going pear-shaped next. make a copy
-hold <- roadmap_core
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# now need to reshape roadmap_core to match core_data from my database
-roadmap_core$ArrayExpressAccession <- 'Roadmap_Epigenomics'
-roadmap_core$study_accession <- roadmap_core$submission_accession
-roadmap_core$secondary_study_accession <- ''
-roadmap_core$sample_accession <- ''
-roadmap_core$secondary_sample_accession <- ''
-roadmap_core$tax_id <- 9606
-roadmap_core$scientific_name <- "Homo sapiens"
-roadmap_core$fastq_galaxy <- ''
-roadmap_core$submitted_ftp <- ''
-roadmap_core$submitted_galaxy <- ''
-roadmap_core$cram_index_ftp <- ''
-roadmap_core$cram_index_galaxy <- ''
-roadmap_core$notes <- 'roadmap_epigenomics.R used to bring data in'
-roadmap_core$Tissue <- sapply(roadmap_core$`Sample Name`,function(x) strsplit(x,',')[[1]][1])
-roadmap_core$Tissue_Source <- roadmap_core$`Sample Name`
-colnames(roadmap_core)[which(names(roadmap_core) == "# GEO Accession")] <- "geo"
-roadmap_core$Name <- roadmap_core$sample_alias
-colnames_of_core_data <- colnames(dbGetQuery(uge_con,"SELECT * FROM core_data"))
-
-roadmap_core <- roadmap_core[,colnames_of_core_data]
-
-# hand check the above, then can append to core_data
-core_data <- dbGetQuery(uge_con,"SELECT * FROM core_data")
-core_data <- rbind(core_data,roadmap_core)
-
-# ok, now write to sqlite
-dbWriteTable(con,"core_data",data.frame(core_data),overwrite=TRUE)
