@@ -86,6 +86,7 @@ main <- uge_metadata %>% select(project_accession, source_name, comment_ena_run,
 # Accessed June 2016, "Export" button used
 source('roadmap_epigenomics.R')
 
+main <- rbind(main,roadmap_main)
 
 
 

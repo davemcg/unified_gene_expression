@@ -111,6 +111,5 @@ not_cell[which(grepl("cell",not_cell))] <- NA
 roadmap_main$characteristics_organism_part <- not_cell
 
 # only keep columns shared with main and reorder to match
-roadmap_main <- roadmap_main %>% select(colnames(main))
-
+roadmap_main <- roadmap_main %>% select(one_of(colnames(main)))
 
