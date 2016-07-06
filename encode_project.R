@@ -16,6 +16,10 @@ load("encode_metadata_paired_mRNAseq.RData")
 # reads, since it currently assumes they have the _1 _2 format that 
 # everyone else uses
 
+#  match up to main
+encode$project_accession <- "ENCODE"
+
+
 forward <- encode %>% filter(`Paired end`==1)
 reverse <- encode %>% filter(`Paired end`==2)
 merged <- left_join(forward,reverse[,c("Paired with","File accession","File download URL")],by=c("File accession"="Paired with"))
