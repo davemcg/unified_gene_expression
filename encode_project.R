@@ -18,7 +18,7 @@ load("encode_metadata_paired_mRNAseq.RData")
 
 #  match up to main
 encode$project_accession <- "ENCODE"
-
+colnames(encode)[which(names(encode) == "Biosample term name")] <- "comment_ena_experiment"
 
 forward <- encode %>% filter(`Paired end`==1)
 reverse <- encode %>% filter(`Paired end`==2)

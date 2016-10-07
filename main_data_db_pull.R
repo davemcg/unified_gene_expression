@@ -82,9 +82,10 @@ main <- uge_metadata %>% select(project_accession, source_name, comment_ena_run,
 ##############
 
 # Roadmap Epigenomics
-# http://www.ncbi.nlm.nih.gov/geo/roadmap/epigenomics/
-# Accessed June 2016, "Export" button used
 source('roadmap_epigenomics.R')
+
+# ENCODE
+source('encode_project.R')
 
 main <- rbind(main,roadmap_main)
 
