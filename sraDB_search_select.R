@@ -80,4 +80,5 @@ fastq_status %>% filter(!study %in% missing_studies, !grepl('_2.fastq.gz',ftp)) 
 listSRAfile(in_acc = runs, sra_con) %>% mutate(wget_call=paste0('wget ', ftp)) %>% select(wget_call)
 # above copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
 # next is to move them into sample_specific folders
-
+listSRAfile(in_acc = runs, sra_con) %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
+listSRAfile(in_acc = runs, sra_con) %>% mutate(mkdir=paste0('mv ', str_split(ftp, '\\/',))) %>% select(mkdir)
