@@ -2,9 +2,10 @@ library(RSQLite)
 library(SRAdb)
 library(tidyverse)
 library(stringr)
+#
+getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
-sqlfile <- getSRAdbFile()
-sra_con <- dbConnect(SQLite(),sqlfile)
+sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
 dbListTables(sra_con)
 # list fields in a table
@@ -29,7 +30,7 @@ human_transcriptome_sra_info <- function(keyword) {
   dbGetQuery(sra_con, new_query)
 }
 
-human_rpe <- human_transcriptome_sra_info("\"%RPE%\"") 
+#human_rpe <- human_transcriptome_sra_info("\"%RPE%\"") 
 
 human_tx_studies <- rbind(
   human_transcriptome_sra_info("\"%RPE%\""),
@@ -46,6 +47,7 @@ human_tx_studies <- rbind(
 # check study titles and abstracts by hand to figure out what to keep
 human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
 # these rows. get the accessions for them
+# THIS WILL FALL APART WHEN THE DB CHANGES. MUST HAND CHECK EACH TIME
 # 4, 5, 10, 13, 17, 18, 20, 21, 22, 24, 25, 26, 28, 32, 33, 43, 44, 45, 46 
 select_studies <- human_tx_studies %>% select(study_accession) %>% distinct() %>% 
   slice(c(4, 5, 10, 13, 17, 18, 20, 21, 22, 24, 25, 26, 28, 32, 33, 43, 44, 45, 46)) %>% .[['study_accession']]
@@ -72,6 +74,8 @@ missing_studies
 # find samples with multiple runs (will need to aggregate the fastqs when making the salmon call)
 eye_rnaseq_experiments %>% select(sample_accession) %>% group_by(sample_accession) %>% arrange(sample_accession) %>% filter(n()>1)
 
+hand_checked <- human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
+save(hand_checked, file='data/eye_studies_hand_checked_2016-10-12.Rdata')
 save(eye_rnaseq_experiments, file='data/eye_rnaSeq_experiments_sraMetadata.Rdata')
 
 
