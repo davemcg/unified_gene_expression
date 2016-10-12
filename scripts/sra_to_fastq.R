@@ -1,13 +1,19 @@
-# get you some fastq from NCBI's sra
+library(RSQLite)
+library(SRAdb)
+library(tidyverse)
+
+
+sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
+sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 
 load('data/eye_rnaSeq_experiments_sraMetadata.Rdata')
-
-# create fastq-dump call, differentiating for single and paired end
-# passing on SRP080886 because it's in dbGaP (protected)
-# paired
-# first check all are labeled paired or single
-table(eye_rnaseq_experiments$library_layout)
-eye_rnaseq_experiments %>% filter(study_accession!='SRP080886',grepl('PAIR',library_layout)) %>% mutate(fastqdump_call=paste0('fastq-dump --split-files --gzip ', run_accession)) %>% select(fastqdump_call)
-eye_rnaseq_experiments %>% filter(study_accession!='SRP080886',grepl('SINGLE',library_layout)) %>% mutate(fastqdump_call=paste0('fastq-dump --gzip ', run_accession)) %>% select(fastqdump_call)
-# copy the above two lines to ~/git/unified_gene_expression/data/eye_search_fastq-dump_2016-10-12.swarm
-# invoke with swarm -f ~/git/unified_gene_expression/data/eye_search_fastq-dump_2016-10-12.swarm --module sratoolkit --time=16:00:00
+runs <- eye_rnaseq_experiments %>% filter(study_accession!='SRP080886') %>% .[['run_accession']]
+###
+# testing streaming is going poorly. EBI ENA appears to be only sporadically working.
+# let's proceed with using NCBI's sra
+listSRAfile(in_acc = runs, sra_con) %>% mutate(wget_call=paste0('wget ', ftp)) %>% select(wget_call)
+# above copied to ~/git/unified_gene_expression/scripts/download_eye-related_sra.sh
+# next is to move them into sample_specific folders
+listSRAfile(in_acc = runs, sra_con) %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
+listSRAfile(in_acc = runs, sra_con) %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
+# above two commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
