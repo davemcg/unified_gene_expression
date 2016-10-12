@@ -1,6 +1,6 @@
 # encode project
 # https://www.encodeproject.org/search/?type=Experiment&assay_term_name=RNA-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&assay_title=polyA+mRNA+RNA-seq&files.file_type=fastq&status=released&files.run_type=paired-ended
-load("encode_metadata_paired_mRNAseq.RData")
+load("data/encode_metadata_paired_mRNAseq.RData")
 # encode must not have understood what 'paired end' was when they setup their data
 # handling structure, since the forward and reverse ends have DIFFERENT
 # and UNRELATED looking accession names
@@ -18,15 +18,10 @@ load("encode_metadata_paired_mRNAseq.RData")
 
 #  match up to main
 encode$project_accession <- "ENCODE"
-colnames(encode)[which(names(encode) == "Biosample term name")] <- "comment_ena_experiment"
+#colnames(encode)[which(names(encode) == "Biosample term name")] <- "comment_ena_experiment"
 
 forward <- encode %>% filter(`Paired end`==1)
 reverse <- encode %>% filter(`Paired end`==2)
 merged <- left_join(forward,reverse[,c("Paired with","File accession","File download URL")],by=c("File accession"="Paired with"))
 
-# ok, grab my metadata
-library(RSQLite)
-# connect to my db
-uge_con <- dbConnect(SQLite(), 'metaData.sqlite')
-core_data <- dbGetQuery(uge_con,"SELECT * FROM core_data")
 

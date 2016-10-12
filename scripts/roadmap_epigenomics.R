@@ -1,17 +1,13 @@
 # bring in roadmap epigenomics data
 
-# use download_SRAdb.R to get sqlite database for sra
-
 library(RSQLite)
+library(SRAdb)
+library(tidyverse)
 library(stringr)
-library(httr)
-# connect to full SRA db
-# this HUGE file is created with download_SRAdb.R
-# change your sqlite filename to match your creation (date will be the day you run download_SRAdb.R)
-sra_con<- dbConnect(SQLite(), '2016-06-27.SRAmetadb.sqlite')
+sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
+sqlfile <- getSRAdbFile()
+sra_con <- dbConnect(SQLite(),sqlfile)
 
-# connect to my db
-# uge_con <- dbConnect(SQLite(), 'metaData.sqlite')
 
 # load up roadmap_epigenomics metadata
 # http://www.ncbi.nlm.nih.gov/geo/roadmap/epigenomics/
@@ -27,89 +23,14 @@ grab$experiment_accession <-
   sapply(grab$`SRA FTP`,function(x) strsplit(x,'\\/')[[1]][11])
 
 
-# grab SRAdb metadata to merge into main table in sqlite3 database
-ALL_sra_fields <- colnames(dbGetQuery(sra_con,"SELECT * FROM sra WHERE experiment_accession='SRX023777'"))
-main_sra_fields <- c('experiment_accession','sample_alias', 'submission_accession', 'run_accession','library_layout','instrument_model')
-# initialize empty data frame
-main_run_info <- read.table(text='',col.names = main_sra_fields)
-run_info <- read.table(text='',col.names = ALL_sra_fields)
-for (srx in grab$experiment_accession) {
-  fields <- 
-  # sql SELECT WHERE query that grab select sra columns for the roadmap epigenetics experiment accessions
-  query <- paste(c("SELECT experiment_accession, sample_alias, submission_accession, run_accession, library_layout, instrument_model FROM sra WHERE experiment_accession='",srx,"'"),collapse='')
-  data <- dbGetQuery(sra_con, query)
-  main_run_info <- rbind(main_run_info,data)
-  # now redo and grab all info
-  query <- paste(c("SELECT * FROM sra WHERE experiment_accession='",srx,"'"),collapse='')
-  data <- dbGetQuery(sra_con, query)
-  run_info <- rbind(run_info, data)
-}
+# use experiment accession to match up with full sra db
 
-roadmap_main <- left_join(main_run_info[,!names(main_run_info) %in% c("instrument_model")],grab[,c("experiment_accession","Sample Name")])
+sra <- dbGetQuery(sra_con, 'SELECT * FROM sra WHERE experiment_accession IN' )
+roadmap_epigenomics_experiments <- sra %>% filter(experiment_accession %in% grab$experiment_accession)
+rm(sra)
+
+save(roadmap_epigenomics_experiments,file='data/roadmap_epigenomics_sraMetadata.Rdata')
 
 
-# build fastq link from accession
-# http://www.ebi.ac.uk/ena/browse/read-download
-# explains how to build EBI fastq links from SRR/ERR
-# Have SRX with the roadmap_epignomics
-ebi_fastq_PE_link_builder <- function(srr) {
-  front <- rep('ftp.sra.ebi.ac.uk/vol1/fastq/')
-  end_1 <- paste(c(srr,'/',srr,'_1.fastq.gz'),collapse='')
-  #end_2 <- paste(c(srr,'/',srr,'_2.fastq.gz'),collapse='')
-  if (nchar(srr) == 9) {
-    middle <- paste(substr(srr,1,6),'/',sep='')
-    link1 <- paste(c(front,middle,end_1),collapse='')
-    #link2 <- paste(c(front,middle,end_2),collapse='')
-  }
-  else {
-    middle <- paste(substr(srr,1,6),'/',sep='')
-    srr_end_to_grab <- nchar(srr) - 10 
-    build_next_middle <- substr(srr,nchar(srr)-srr_end_to_grab,nchar(srr))
-    build_next_middle <- str_sub(paste('00000',build_next_middle,sep=''),-3)
-    link1 <- paste(c(front,middle,build_next_middle,'/',end_1),collapse='')
-    #link2 <- paste(c(front,middle,build_next_middle,'/',end_2),collapse='')
-  }
-  #out <- paste(link1,link2,sep=';')
-  return(link1)
-}
 
-fastq_urls <- ''
-for (srr in roadmap_main$run_accession){
-  if (try(!http_error(ebi_fastq_PE_link_builder(srr)),TRUE) == TRUE) {
-    fastq_urls <- c(fastq_urls, ebi_fastq_PE_link_builder(srr))
-    print(c(srr,ebi_fastq_PE_link_builder(srr)))
-  }
-  else {
-    link <- ebi_fastq_PE_link_builder(srr)
-    link <- gsub("_1.fastq.gz",".fastq.gz",link)
-    print(c(srr, link))
-    fastq_urls <- c(fastq_urls,link)
-  }
-}
-
-fastq_urls <- fastq_urls[-1]
-roadmap_main$comment_fastq_uri <- fastq_urls
-
-
-#load('temp.RData')
-
-# rename columns to match "main" from grabbing arrayExpress info (main_data_db_pull.R)
-colnames(roadmap_main)[which(names(roadmap_main) == "experiment_accession")] <- "comment_ena_experiment"
-colnames(roadmap_main)[which(names(roadmap_main) == "sample_alias")] <- "source_name"
-colnames(roadmap_main)[which(names(roadmap_main) == "submission_accession")] <- "project_accession"
-colnames(roadmap_main)[which(names(roadmap_main) == "run_accession")] <- "comment_ena_run"
-colnames(roadmap_main)[which(names(roadmap_main) == "library_layout")] <- "comment_library_layout"
-roadmap_main$characteristics_organism <- 'Homo sapiens'
-roadmap_main$factor_value_sex <- NA
-# roadmap sample names have cell and tissue in the same column
-# breaking out for arrayExpress style
-cell <- roadmap_main$`Sample Name`
-cell[which(!grepl("cell",cell))] <- NA
-roadmap_main$factor_value_cell_line <- cell
-not_cell <- roadmap_main$`Sample Name`
-not_cell[which(grepl("cell",not_cell))] <- NA
-roadmap_main$characteristics_organism_part <- not_cell
-
-# only keep columns shared with main and reorder to match
-roadmap_main <- roadmap_main %>% select(one_of(colnames(main)))
 

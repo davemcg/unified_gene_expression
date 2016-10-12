@@ -55,22 +55,26 @@ human_tx_studies %>% filter(study_accession %in% select_studies) %>% nrow()
 human_tx_studies %>% filter(study_accession %in% select_studies) %>% select(study_accession, study_title, experiment_title, sample_name, sample_attribute)
 # rows to toss because they involved chemical treatment
 # 56,57,58,61,63,64,65,66,67
-short_list <- human_tx_studies %>% filter(study_accession %in% select_studies) %>% slice(-c(56,57,58,61,63,64,65,66,67))
+eye_rnaseq_experiments <- human_tx_studies %>% filter(study_accession %in% select_studies) %>% slice(-c(56,57,58,61,63,64,65,66,67))
 
 # check which have functioning ENA fastq links
-runs<- short_list$run_accession
+runs<- eye_rnaseq_experiments$run_accession
 fastq_status <- getFASTQinfo(in_acc = runs, sra_con,srcType='ftp')
 missing_studies <- fastq_status %>% select(study, ftp) %>% filter(is.na(ftp)) %>% select(study) %>% distinct() %>% .[['study']]
 missing_studies
 # of these, only 'SRP080886' needs dbGaP permission. I downloaded it through dbGap
 # https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=dbgap_use
 # https://hpc.nih.gov/apps/sratoolkit.html
-# /data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/dbGap/11588/sra
+# biowulf2:/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/dbGap/11588/sra
 # the other missing will have to have their reads downloaded in sra format
 
 # the one's that are NOT missing can be streamed via curl in salmon
 # find samples with multiple runs (will need to aggregate the fastqs when making the salmon call)
-short_list %>% select(sample_accession) %>% group_by(sample_accession) %>% arrange(sample_accession) %>% filter(n()>1)
+eye_rnaseq_experiments %>% select(sample_accession) %>% group_by(sample_accession) %>% arrange(sample_accession) %>% filter(n()>1)
+
+save(eye_rnaseq_experiments, file='data/eye_rnaSeq_experiments_sraMetadata.Rdata')
+
+
 
 fastq_status %>% filter(!study %in% missing_studies, !grepl('_2.fastq.gz',ftp)) %>% group_by(sample) %>% summarise(ftp=paste(ftp,collapse=',')) %>% data.frame()
 ###
@@ -82,3 +86,4 @@ listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(wg
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
 # above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
+
