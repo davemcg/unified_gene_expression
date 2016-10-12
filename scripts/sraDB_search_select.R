@@ -77,8 +77,8 @@ fastq_status %>% filter(!study %in% missing_studies, !grepl('_2.fastq.gz',ftp)) 
 # testing streaming is going poorly. EBI ENA appears to be only sporadically working.
 # let's proceed with using NCBI's sra
 # listSRAfile(in_acc = runs, sra_con) %>% group_by(sample) %>% summarise(ftp=paste(ftp,collapse=',')) %>% data.frame()
-listSRAfile(in_acc = runs, sra_con) %>% mutate(wget_call=paste0('wget ', ftp)) %>% select(wget_call)
-# above copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
+listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(wget_call=paste0('wget ', ftp)) %>% select(wget_call)
 # next is to move them into sample_specific folders
-listSRAfile(in_acc = runs, sra_con) %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
-listSRAfile(in_acc = runs, sra_con) %>% mutate(mkdir=paste0('mv ', str_split(ftp, '\\/',))) %>% select(mkdir)
+listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
+listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
+# above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
