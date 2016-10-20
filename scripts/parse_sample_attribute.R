@@ -32,10 +32,14 @@ eye_rnaseq_experiments %>% mutate(Tissue=grab_attribute(sample_attribute,'tissue
 eye_structure <- c('RPE','Retina', 'Cornea','EyeLid')
 orig_source <- c('Cell','Tissue')
 
+
+
 # ugly logic to fill out eye structure and sample origin (cell line or human tissue)
 # found at this point I accidentally brought along a few samples that are melanoma
 # filtered out at this point
-eye_rnaseq_experiments %>% filter(!grepl('melanoma',sample_attribute)) %>% 
+eye_rnaseq_experiments_extra <-  
+                           eye_rnaseq_experiments %>% 
+                           filter(!grepl('melanoma',sample_attribute)) %>% 
                            mutate(Tissue=grab_attribute(sample_attribute,'tissue','\\|\\|'),
                                         Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
                                         Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
@@ -47,3 +51,14 @@ eye_rnaseq_experiments %>% filter(!grepl('melanoma',sample_attribute)) %>%
                             mutate(Eye_Structure=ifelse(is.na(Eye_Structure),'ESC',Eye_Structure)) %>% 
                             mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9', sample_attribute),'Cell_Line','Tissue')) %>% 
                             select(sample_attribute, Eye_Structure, Origin)
+
+# hack in E-MTAB-4377
+e_mtab_4377 <- fread('data/E-MTAB-4377.sdrf.txt')
+nums <- sapply(e_mtab_4377$`Source Name`, function(x) strsplit(x, '\\s')[[1]][2])
+e_mtab_4377$sample_accession <- paste0('E-MTAB-4377.RNA',nums)
+e_mtab_4377$run_accession <- paste0('E-MTAB-4377.RNA',nums)
+e_mtab_4377 <- data.frame(e_mtab_4377)
+e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.organism.part.,'gender: ', Characteristics.sex., 'age: ', Characteristics.age., 'post-mortem time: ', Characteristics.total.post.mortem.time., sep=' || ')) %>% 
+  mutate(Origin='Tissue', Eye_Structure='Retina') %>% select(sample_accession, run_accession, sample_attribute, Origin, Eye_Structure)
+
+eye_rnaseq_experiments_all <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
