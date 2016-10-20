@@ -33,7 +33,10 @@ eye_structure <- c('RPE','Retina', 'Cornea','EyeLid')
 orig_source <- c('Cell','Tissue')
 
 # ugly logic to fill out eye structure and sample origin (cell line or human tissue)
-eye_rnaseq_experiments %>% mutate(Tissue=grab_attribute(sample_attribute,'tissue','\\|\\|'),
+# found at this point I accidentally brought along a few samples that are melanoma
+# filtered out at this point
+eye_rnaseq_experiments %>% filter(!grepl('melanoma',sample_attribute)) %>% 
+                           mutate(Tissue=grab_attribute(sample_attribute,'tissue','\\|\\|'),
                                         Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
                                         Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
                                         Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
