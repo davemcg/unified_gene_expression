@@ -21,7 +21,9 @@ This will be computationally very expensive. This project has two things in its 
 biowulf2 is a huge computer cluster. Coupled with the very fast and accurate salmon/kallisto for gene/transcript quantification, this is tractable issue. 
 
 ## Querying the SRA for relevant eye RNA-seq datasets
-scripts/sraDB_search_select.R leverages the R package sraDB to download the entire sequence read archive metadata. Then the tidyverse is used to ID relevant run accessions. As of 2016-10-20, I've identified 179 normal samples, covering RPE/choroid, retina, and cornea tissue. There are another 50 retina samples from another study (E-MTAB-4377) that are not in the SRA. So, 229 tissues. 
+https://github.com/davemcg/unified_gene_expression/blob/master/scripts/sraDB_search_select.R leverages the R package sraDB to download the entire sequence read archive metadata. Then the tidyverse is used to ID relevant run accessions. As of 2016-10-12, I've identified 179 normal samples, covering RPE/choroid, retina, and cornea tissue. There are another 50 retina samples from another study (E-MTAB-4377) that are not in the SRA. So, 229 tissues total. 
+
+This is fairly streamlined, but needs to be manually re-run periodically to identify new studies. https://github.com/davemcg/unified_gene_expression/blob/master/data/eye_studies_hand_checked_2016-10-12.Rdata contains the studies that I've hand checked on the search parameters in https://github.com/davemcg/unified_gene_expression/blob/master/scripts/sraDB_search_select.R. In the future I can simply rerun the search and check studies that aren't in the Rdata file.
 
 # Bioinformatic workflow
 ## SRA to transcript-level counts
