@@ -23,7 +23,7 @@ biowulf2 is a huge computer cluster. Coupled with the very fast and accurate sal
 ## Querying the SRA for relevant eye RNA-seq datasets
 scripts/sraDB_search_select.R leverages the R package sraDB to download the entire sequence read archive metadata. Then the tidyverse is used to ID relevant run accessions. As of 2016-10-20, I've identified 179 normal samples, covering RPE/choroid, retina, and cornea tissue. There are another 50 retina samples from another study (E-MTAB-4377) that are not in the SRA. So, 229 tissues. 
 
-### Bioinformatic workflow
+# Bioinformatic workflow
 ## SRA to transcript-level counts
 Very roughly, SRA acquired via wget or sratoolkit's sam-dump, converted to fastq, gene/transcript levels quantified with Salmon against Gencode v25 protein coding transcripts. This initial effort was broken into three categories:
 
