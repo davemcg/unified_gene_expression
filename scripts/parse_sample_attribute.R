@@ -50,15 +50,18 @@ eye_rnaseq_experiments_extra <-
                             mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Eye_Structure)) %>%
                             mutate(Eye_Structure=ifelse(is.na(Eye_Structure),'ESC',Eye_Structure)) %>% 
                             mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9', sample_attribute),'Cell_Line','Tissue')) %>% 
-                            select(sample_attribute, Eye_Structure, Origin)
+                            select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Eye_Structure, Origin)
 
 # hack in E-MTAB-4377
 e_mtab_4377 <- fread('data/E-MTAB-4377.sdrf.txt')
 nums <- sapply(e_mtab_4377$`Source Name`, function(x) strsplit(x, '\\s')[[1]][2])
 e_mtab_4377$sample_accession <- paste0('E-MTAB-4377.RNA',nums)
 e_mtab_4377$run_accession <- paste0('E-MTAB-4377.RNA',nums)
+e_mtab_4377$study_accession <- 'E_MTAB_4377'
+e_mtab_4377$study_title <- 'An atlas of gene expression and gene co-regulation in the human retina'
+e_mtab_4377$study_abstract <- 'The human retina is a specialized tissue involved in light stimulus transduction. Despite its unique biology, an accurate reference transcriptome is still missing. Here, we performed gene expression analysis (RNA-seq) of 50 retinal samples from non-visually impaired post-mortem donors. We identified novel transcripts with high confidence (Observed Transcriptome (ObsT)) and quantified the expression level of known transcripts (Reference Transcriptome (RefT)). The ObsT included 77 623 transcripts (23 960 genes) covering 137 Mb (35 Mb new transcribed genome). Most of the transcripts (92%) were multi-exonic: 81% with known isoforms, 16% with new isoforms and 3% belonging to new genes. The RefT included 13 792 genes across 94 521 known transcripts. Mitochondrial genes were among the most highly expressed, accounting for about 10% of the reads. Of all the protein-coding genes in Gencode, 65% are expressed in the retina. We exploited inter-individual variability in gene expression to infer a gene co-expression network and to identify genes specifically expressed in photoreceptor cells. We experimentally validated the photoreceptors localization of three genes in human retina that had not been previously reported. RNA-seq data and the gene co-expression network are available online (http://retina.tigem.it).'
 e_mtab_4377 <- data.frame(e_mtab_4377)
-e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.organism.part.,'gender: ', Characteristics.sex., 'age: ', Characteristics.age., 'post-mortem time: ', Characteristics.total.post.mortem.time., sep=' || ')) %>% 
-  mutate(Origin='Tissue', Eye_Structure='Retina') %>% select(sample_accession, run_accession, sample_attribute, Origin, Eye_Structure)
+e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.organism.part.,' || gender: ', Characteristics.sex., ' || age: ', Characteristics.age., ' || post-mortem time: ', Characteristics.total.post.mortem.time., sep='')) %>% 
+  mutate(Origin='Tissue', Eye_Structure='Retina') %>% select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Eye_Structure, Origin)
 
-eye_rnaseq_experiments_all <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
+core_eye_info <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
