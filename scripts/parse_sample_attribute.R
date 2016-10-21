@@ -46,6 +46,7 @@ eye_rnaseq_experiments_extra <-
                                         Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
                             mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
                             mutate(Eye_Structure=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Eye_Structure)) %>% 
+                            mutate(Eye_Structure=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Eye_Structure)) %>%
                             mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Eye_Structure)) %>%
                             mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Eye_Structure)) %>%
                             mutate(Eye_Structure=ifelse(is.na(Eye_Structure),'ESC',Eye_Structure)) %>% 
