@@ -1,5 +1,5 @@
 library(stringr)
-library(tidyverse)
+library(dplyr)
 
 load('data/eye_rnaSeq_experiments_sraMetadata.Rdata')
 
