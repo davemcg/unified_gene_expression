@@ -3,7 +3,7 @@ library(SRAdb)
 library(tidyverse)
 library(stringr)
 #
-# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
+getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
@@ -91,3 +91,10 @@ listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sa
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
 # above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
 
+##############################
+# GTEx
+##############################
+gtex <- dbGetQuery(sra_con,'select * from sra WHERE study_accession=="SRP012682"') %>% filter(library_strategy=='RNA-Seq')
+# most have one file/run per sample
+gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% nrow()
+gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% filter(grepl(',',runs))
