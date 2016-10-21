@@ -1,7 +1,7 @@
 library(stringr)
 library(dplyr)
 
-load('data/eye_rnaSeq_experiments_sraMetadata.Rdata')
+load('~/git/unified_gene_expression/data/eye_rnaSeq_experiments_sraMetadata.Rdata')
 
 # get a feel for how insanely messy this is
 eye_rnaseq_experiments %>% select(sample_attribute) %>% sample_n(10)
@@ -53,7 +53,7 @@ eye_rnaseq_experiments_extra <-
                             select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Eye_Structure, Origin)
 
 # hack in E-MTAB-4377
-e_mtab_4377 <- fread('data/E-MTAB-4377.sdrf.txt')
+e_mtab_4377 <- fread('~/git/unified_gene_expression/data/E-MTAB-4377.sdrf.txt')
 nums <- sapply(e_mtab_4377$`Source Name`, function(x) strsplit(x, '\\s')[[1]][2])
 e_mtab_4377$sample_accession <- paste0('E-MTAB-4377.RNA',nums)
 e_mtab_4377$run_accession <- paste0('E-MTAB-4377.RNA',nums)
