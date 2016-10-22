@@ -128,9 +128,12 @@ tissues_to_use <-
 
 # randomly select 5 male and 5 female from each
 set.seed(138835)
-gtex %>% 
+swarm_call <- 
+  gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
   group_by(Site, Gender) %>% sample_n(5) %>% 
-  select(sample_accession, run_accession) 
+  mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, sep=' ')) %>% 
+  .[['swarm_call']]
+write.table(swarm_call, file='~/git/unified_gene_expression/scripts/gtex_call.swarm',row.names=F,col.names = F,quote = F)
