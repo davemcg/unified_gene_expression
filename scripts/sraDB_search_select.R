@@ -98,3 +98,39 @@ gtex <- dbGetQuery(sra_con,'select * from sra WHERE study_accession=="SRP012682"
 # most have one file/run per sample
 gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% nrow()
 gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% filter(grepl(',',runs))
+
+grab_attribute <- function(full_attribute, keyword, delimiter){
+  attribute_vector <- sapply(full_attribute, function(x) list(str_split(x, delimiter)[[1]]))
+  attribute_vector
+  attribute <- sapply(attribute_vector, function(x) grep(pattern = keyword,x = x,value = T))
+  sapply(attribute, function(x) ifelse(length(x)>0, strsplit(x,':')[[1]][2], NA))
+  #attribute <- attribute_vector[grepl(x = attribute_vector, pattern = keyword)]
+  #attribute
+}
+
+tissues <- gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% .[['Tissue']]
+tissue_site <- gtex %>% 
+  mutate(site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% .[['site']]
+
+table(tissues)
+table(tissue_site)
+
+# tissue sites with >10 for both male and female
+
+tissues_to_use <- 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% .[['Site']]
+
+# randomly select 5 male and 5 female from each
+set.seed(138835)
+gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% sample_n(5) %>% 
+  select(sample_accession, run_accession) 
