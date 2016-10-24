@@ -75,5 +75,5 @@ core_info <-
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Origin='Tissue') %>% 
   select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin) %>% 
-  bind_rows(.,core_eye_info) %>% head()
+  bind_rows(.,core_eye_info)
 
