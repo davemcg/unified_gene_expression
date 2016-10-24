@@ -493,4 +493,3 @@
 ~/git/unified_gene_expression/scripts/salmon_stream.sh SRR608428 paired SRS333467
 ~/git/unified_gene_expression/scripts/salmon_stream.sh SRR663585 paired SRS389825
 ~/git/unified_gene_expression/scripts/salmon_stream.sh SRR1328383 paired SRS626810
-

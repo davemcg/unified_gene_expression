@@ -3,7 +3,7 @@ library(SRAdb)
 library(tidyverse)
 library(stringr)
 #
-# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
+getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
@@ -91,3 +91,51 @@ listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sa
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
 # above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
 
+##############################
+# GTEx
+##############################
+gtex <- dbGetQuery(sra_con,'select * from sra WHERE study_accession=="SRP012682"') %>% filter(library_strategy=='RNA-Seq')
+# most have one file/run per sample
+gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% nrow()
+gtex %>% group_by(sample_accession) %>% summarise(runs=paste(run_accession,collapse=',')) %>% filter(grepl(',',runs))
+
+grab_attribute <- function(full_attribute, keyword, delimiter){
+  attribute_vector <- sapply(full_attribute, function(x) list(str_split(x, delimiter)[[1]]))
+  attribute_vector
+  attribute <- sapply(attribute_vector, function(x) grep(pattern = keyword,x = x,value = T))
+  sapply(attribute, function(x) ifelse(length(x)>0, strsplit(x,':')[[1]][2], NA))
+  #attribute <- attribute_vector[grepl(x = attribute_vector, pattern = keyword)]
+  #attribute
+}
+
+tissues <- gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% .[['Tissue']]
+tissue_site <- gtex %>% 
+  mutate(site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% .[['site']]
+
+table(tissues)
+table(tissue_site)
+
+# tissue sites with >10 for both male and female
+
+gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% select(Site)
+
+# randomly select 5 male and 5 female from each
+set.seed(138835)
+swarm_call <- 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% sample_n(5) %>% 
+  mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
+  .[['swarm_call']]
+write.table(swarm_call, file='~/git/unified_gene_expression/scripts/gtex_call.swarm',row.names=F,col.names = F,quote = F)
+
+# save gtex metadata
+save(gtex, file='data/gtex_sraMetadata.Rdata')
