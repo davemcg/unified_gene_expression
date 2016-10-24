@@ -137,3 +137,5 @@ swarm_call <-
   .[['swarm_call']]
 write.table(swarm_call, file='~/git/unified_gene_expression/scripts/gtex_call.swarm',row.names=F,col.names = F,quote = F)
 
+# save gtex metadata
+save(gtex, file='data/gtex_sraMetadata.Rdata')

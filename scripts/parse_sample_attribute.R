@@ -1,5 +1,6 @@
 library(stringr)
 library(dplyr)
+library(data.table)
 
 load('~/git/unified_gene_expression/data/eye_rnaSeq_experiments_sraMetadata.Rdata')
 
@@ -44,14 +45,14 @@ eye_rnaseq_experiments_extra <-
                                         Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
                                         Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
                                         Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
-                            mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
-                            mutate(Eye_Structure=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Eye_Structure)) %>% 
-                            mutate(Eye_Structure=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Eye_Structure)) %>%
-                            mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Eye_Structure)) %>%
-                            mutate(Eye_Structure=ifelse(grepl(x= sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Eye_Structure)) %>%
-                            mutate(Eye_Structure=ifelse(is.na(Eye_Structure),'ESC',Eye_Structure)) %>% 
+                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Tissue)) %>% 
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Tissue)) %>%
+                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Tissue)) %>%
+                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
+                            mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
                             mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9', sample_attribute),'Cell_Line','Tissue')) %>% 
-                            select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Eye_Structure, Origin)
+                            select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
 
 # hack in E-MTAB-4377
 e_mtab_4377 <- fread('~/git/unified_gene_expression/data/E-MTAB-4377.sdrf.txt')
@@ -63,6 +64,16 @@ e_mtab_4377$study_title <- 'An atlas of gene expression and gene co-regulation i
 e_mtab_4377$study_abstract <- 'The human retina is a specialized tissue involved in light stimulus transduction. Despite its unique biology, an accurate reference transcriptome is still missing. Here, we performed gene expression analysis (RNA-seq) of 50 retinal samples from non-visually impaired post-mortem donors. We identified novel transcripts with high confidence (Observed Transcriptome (ObsT)) and quantified the expression level of known transcripts (Reference Transcriptome (RefT)). The ObsT included 77 623 transcripts (23 960 genes) covering 137 Mb (35 Mb new transcribed genome). Most of the transcripts (92%) were multi-exonic: 81% with known isoforms, 16% with new isoforms and 3% belonging to new genes. The RefT included 13 792 genes across 94 521 known transcripts. Mitochondrial genes were among the most highly expressed, accounting for about 10% of the reads. Of all the protein-coding genes in Gencode, 65% are expressed in the retina. We exploited inter-individual variability in gene expression to infer a gene co-expression network and to identify genes specifically expressed in photoreceptor cells. We experimentally validated the photoreceptors localization of three genes in human retina that had not been previously reported. RNA-seq data and the gene co-expression network are available online (http://retina.tigem.it).'
 e_mtab_4377 <- data.frame(e_mtab_4377)
 e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.organism.part.,' || gender: ', Characteristics.sex., ' || age: ', Characteristics.age., ' || post-mortem time: ', Characteristics.total.post.mortem.time., sep='')) %>% 
-  mutate(Origin='Tissue', Eye_Structure='Retina') %>% select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Eye_Structure, Origin)
+  mutate(Origin='Tissue', Tissue='Retina') %>% select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
 
 core_eye_info <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
+
+# gtex
+load('~/git/unified_gene_expression/data/gtex_sraMetadata.Rdata')
+core_info <- 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Origin='Tissue') %>% 
+  select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin) %>% 
+  bind_rows(.,core_eye_info) %>% head()
+
