@@ -118,12 +118,13 @@ table(tissue_site)
 
 # tissue sites with >10 for both male and female
 
-gtex %>% 
+selected_sites <-
+  gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
   group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
-  group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% select(Site)
+  group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% .[['Site']]
 
 # randomly select 5 male and 5 female from each
 set.seed(138835)

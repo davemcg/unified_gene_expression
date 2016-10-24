@@ -75,5 +75,8 @@ core_info <-
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Origin='Tissue') %>% 
   select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin) %>% 
-  bind_rows(.,core_eye_info)
+  bind_rows(.,core_eye_info) 
 
+keepers <- c('RPE','Retina','Cornea',' Adipose Tissue ',' Adrenal Gland ',' Blood ',' Blood Vessel ',' Brain ',' Breast ',' Colon ',' Esophagus ',' Heart ',' Liver ',' Lung ',' Muscle ',' Nerve ',' Pancreas ',' Pituitary ',' Salivary Gland ',' Skin ',' Small Intestine ',' Spleen ',' Stomach ',' Thyroid ')
+
+core_tight <- core_info %>% filter(Tissue %in% keepers)
