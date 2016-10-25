@@ -10,6 +10,7 @@ library(readr)
 working_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts'
 # eyeMac
 working_dir <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/salmon_counts'
+
 setwd(working_dir)
 
 # pull in salmon files
