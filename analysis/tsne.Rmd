@@ -1,0 +1,144 @@
+---
+title: "01 tsne clustering-based overview of eye and GTEx RNA-seq datasets"
+output: html_notebook
+---
+```{r, echo = F, warning = F}
+library(ggplot2)
+library(tidyverse)
+library(Rtsne)
+library(gganimate)
+library(formattable)
+source('~/git/scripts/theme_Publication.R')
+source('~/git/unified_gene_expression/scripts/calculate_lengthScaledTPM.R')
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
+load('~/git/unified_gene_expression/data/gencode_v25_gtf_annotation.Rdata')
+```
+
+## Eye 
+
+`core_eye_info %>% group_by(study_accession, study_title) %>% summarise(Count = n()) %>% nrow()` total normal eye RNA-seq studies collected
+
+Basic tabular info on the collected eye RNA-seq data
+
+```{r}
+# Eye RNA-seq studies with the number of samples
+core_eye_info %>% group_by(study_accession, study_title) %>% summarise(Count = n()) %>% formattable()
+# Number of RPE, Retina, Cornea, etc. tissues, by source (Tissue or Cell Line)
+core_eye_info %>% group_by(Tissue, Origin) %>% summarise(Count=n()) %>% formattable()
+```
+
+I want to see the relationships between the tissues. I expect to see retina and RPE as distinct clusters of tissues. Curious about where the cornea, eyelid, and ESCs (embryonic stem cells) end up. To judge the stability of the clustering, I'm running through perplexities 5 to 50. 
+
+```{r}
+tsne_list = list()
+# remove NA-filled samples
+lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
+for (n in seq(5,50)) {
+  set.seed(935489)
+  tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM)+1)),perplexity = n, check_duplicates = FALSE, theta=0.0 )
+  # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
+  tsne_plot <- data.frame(tsne_out$Y)
+  tsne_plot$sample_accession <- colnames(lengthScaledTPM)
+  tsne_plot$perplexity <- n
+  tsne_list[[n]]<-tsne_plot
+}
+long_tsne_plot <- do.call(rbind, tsne_list)
+eye_only <- c('Retina','RPE','Cornea','ESC','EyeLid','Cornea')
+```
+
+Perplexity 5 through 50
+```{r}
+plot <- long_tsne_plot %>% left_join(.,core_info) %>% filter(Tissue %in% eye_only) %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=study_accession,frame=perplexity)) + 
+    geom_point(size=4) + scale_shape_manual(values=c(0:20)) +
+    ggtitle(paste0("t-sne. Perplexity = ")) +
+    theme_Publication()
+gg_animate(plot)
+```
+
+So, retina and RPE largely stay apart. Though each has little outgroups. ESC, EyeLid, and Cornea tend to be with the RPE. Let's try to see what each outgroup is. 
+
+Just perplexity 40:
+```{r, fig.width=4, fig.height=5}
+long_tsne_plot %>% left_join(.,core_info) %>% filter(perplexity==40, Tissue %in% eye_only) %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=study_accession)) + 
+    geom_point(size=4) + scale_shape_manual(values=c(0:20)) +
+    ggtitle(paste0("t-sne. Perplexity = ", 40)) +
+    theme_Publication()
+```
+OK, let's colour by tissue source and only keep Retina and RPE:
+```{r, fig.width=4, fig.height=5}
+long_tsne_plot %>% left_join(.,core_info) %>% filter(perplexity==40, Tissue %in% c('Retina','RPE')) %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Origin,shape=study_accession)) + 
+    geom_point(size=4) + scale_shape_manual(values=c(0:20)) +
+    ggtitle(paste0("t-sne. Perplexity = ", 40)) +
+    theme_Publication()
+```
+That retina group has a cell-line origin. Abstract for SRP056957. `r eye_rnaseq_experiments %>% filter(study_accession=='SRP056957') %>% select(study_abstract) %>% distinct()`
+
+OK, so perhaps that should be removed from a comprehensive analysis. 
+
+What about the RPE outlier group in the lower right? Seems to be an origin thing. Let's read the abstracts for the two studies in that group.
+`r eye_rnaseq_experiments %>% filter(study_accession=='SRP034875') %>% select(study_abstract) %>% distinct()` and `r eye_rnaseq_experiments %>% filter(study_accession=='SRP080886') %>% select(study_abstract) %>% distinct()`
+
+Both of these from a paired experiment where they took retina and RPE/sclera/choroid from post-mortem human eyes. 
+
+We see a FEW tissue derived RPE (the triangle group at X2=-5,X1=-15 and the plus group at X2=10, X1=-15) clustering with the cell-line-based RPE. What are these? 
+`r eye_rnaseq_experiments %>% filter(study_accession=='SRP011895') %>% mutate(Source=grab_attribute(sample_attribute,'origen','\\|\\|')) %>% select(Source) %>% distinct()`
+`r eye_rnaseq_experiments %>% filter(study_accession=='SRP012585') %>% select(sample_attribute) %>% distinct()`
+
+Ah, actual fetal RPE. Suggesting that cultured RPE derived from H1/H9 ESCs are fetal-like. 
+
+## GTEx
+
+OK, so I've got 19 studies worth of RNA-seq data. I'd also like to see how these relate to other human tissues. The largest go-to source is the GTEx Portal (http://www.gtexportal.org/home/), where they took tissues from hundreds of post-mortem humans. They have around <b>7,000</b> RNA-seq datasets. 
+
+I selected tissues with more than 10 female and male samples, which will skip tissues that have few samples and are gender-specific (e.g. uterus, prostate).
+
+```{r}
+gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Tissue, Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Tissue, Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% select(Tissue, Site) %>% formattable()
+```
+
+Lots of sub-tissues. Let's look just by tissue.
+```{r}
+gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Tissue, Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Tissue, Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% select(Tissue) %>% distinct() %>% formattable()
+```
+
+Let's make a big t-sne plot with <b>all</b> of the tissues immediately above, RPE, and retina. 
+```{r, fig.width=4, fig.height=5}
+long_tsne_plot %>% left_join(.,core_info) %>% filter(perplexity==35, Tissue %in% keepers) %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+    geom_point(size=4) + scale_shape_manual(values=c(0:20,35:45)) +
+    ggtitle(paste0("t-sne. Perplexity = ", 40)) +
+    theme_Publication()
+```
+
+We see that, interestingly enough, that eye tissue is rather distinct from the other tissues. Also disappointing, since I was hoping to easily leverage GTEx's eQTLs. 
+
+
+
+```{r}
+n=100
+ set.seed(935489)
+  tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_noXYMT)+1)),perplexity = n, check_duplicates = FALSE, theta=0.0 )
+  # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
+  tsne_plot <- data.frame(tsne_out$Y)
+  tsne_plot$sample_accession <- colnames(lengthScaledTPM_noXYMT)
+  
+  tsne_plot %>% left_join(.,core_info) %>% filter(Tissue %in% keepers) %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+    geom_point(size=4) + scale_shape_manual(values=c(0:20,35:45)) +
+    ggtitle(paste0("t-sne. Perplexity = ", n)) +
+    theme_Publication()
+```

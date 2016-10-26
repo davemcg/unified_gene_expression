@@ -5,15 +5,24 @@ library(ggrepel)
 source('~/git/scripts/theme_Publication.R')
 source('~/git/unified_gene_expression/scripts/calculate_lengthScaledTPM.R')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
-
+load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
+tsne_list = list()
+# remove NA-filled samples
+lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
 for (n in seq(5,50)) {
   set.seed(935489)
   tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM)+1)),perplexity = n, check_duplicates = FALSE, theta=0.0 )
   # Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
   tsne_plot <- data.frame(tsne_out$Y)
   tsne_plot$sample_accession <- colnames(lengthScaledTPM)
-  tsne_plot2<-left_join(tsne_plot,core_eye_info)
-  plot <- ggplot(tsne_plot2,aes(x=X1,y=X2,colour=Eye_Structure,shape=study_accession)) + 
+  tsne_plot2<-left_join(tsne_plot,core_tight)
+  tsne_plot2$perplexity <- n
+  tsne_list[[n]]<-tsne_plot2
+}
+
+
+
+   plot <- ggplot(tsne_plot2,aes(x=X1,y=X2,colour=Eye_Structure,shape=study_accession)) + 
     geom_point(size=4) + 
     scale_shape_manual(values=c(0:20)) + 
     ggtitle(paste0("t-sne. Perplexity = ",n)) +
