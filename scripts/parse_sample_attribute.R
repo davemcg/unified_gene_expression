@@ -67,14 +67,15 @@ e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.org
   mutate(Origin='Tissue', Tissue='Retina') %>% select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
 
 core_eye_info <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
-
+core_eye_info <- core_eye_info %>% mutate(Sub_Tissue=ifelse(Origin=='Tissue',Tissue,paste0('fetal',Tissue)))
 # gtex
 load('~/git/unified_gene_expression/data/gtex_sraMetadata.Rdata')
 core_info <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Sub_Tissue=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Origin='Tissue') %>% 
-  select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin) %>% 
+  select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Sub_Tissue, Origin) %>% 
   bind_rows(.,core_eye_info) 
 
 # brought along quite a few gender-specific tissues (prostrate, vagina, etc.)
