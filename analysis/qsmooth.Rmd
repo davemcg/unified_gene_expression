@@ -187,7 +187,7 @@ plot(1:60, wss, type="b", xlab="Number of Clusters",
 # 24 is the total number of Tissues
 # 48 is the total number of Sub Tissues
 set.seed(23235)
-fit <- kmeans(tsne_go[,c('X1','X2')], 48)
+fit <- kmeans(tsne_go[,c('X1','X2')], 24)
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% formattable()
 ```
 
@@ -199,7 +199,7 @@ OK, now take the mean of Tissue_Count and highest_freq, for two metrics for each
 ```{r}
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
 ```
-Cool. Let's go the end (qsmooth, removal of low-median samples, removal of low expression genes) and see if these metrics get better.
+Cool. Let's go the end (qsmooth, removal of low-median samples, removal of low expression genes) and see if these metrics get better. YES THEY DO. IT WORKS. OMG. (Sorry, usually stuff like this blows up in my face once I test it rigorously). 
 ```{r}
 
 set.seed(23235)
