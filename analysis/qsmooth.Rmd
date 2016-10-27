@@ -1,0 +1,90 @@
+---
+title: "qsmooth test"
+output: html_notebook
+---
+```{r}
+library(qsmooth)
+library(Rtsne)
+library(ggplot2)
+library(formattable)
+library(tidyverse)
+source('~/git/scripts/theme_Publication.R')
+# https://github.com/stephaniehicks/qsmooth
+load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+```
+Testing to see if running qsmooth (https://github.com/stephaniehicks/qsmooth, weighted quantile normalization) improves the clustering performance.
+
+```{r}
+lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
+
+samples <- data.frame(colnames(lengthScaledTPM))
+colnames(samples) <- 'sample_accession'
+tissue_frame <- left_join(samples, core_info) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
+# make sure they are lined up
+tissues <- left_join(samples, tissue_frame)
+# just keep the keeper set of tissues (no prostrate, etc)
+sub <- tissues %>% filter(Tissue %in% keepers)
+lengthScaledTPM_sub<-lengthScaledTPM[,sub$sample_accession]
+qs <- qsmooth(object = lengthScaledTPM_sub,groupFactor = as.factor(sub$Tissue))
+lengthScaledTPM_qsmooth <- qsmoothData(qs)
+
+set.seed(23235)
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth)
+
+tsne_plot %>% left_join(.,core_info)  %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle(paste0("t-sne. Perplexity = ", 50)) +
+  theme_Publication()
+```
+
+No qsmooth
+```{r}
+set.seed(23235)
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_sub)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+# Perplexity is a measure for information that is defined as 2 to the power of the Shannon entropy. The perplexity of a fair die with k sides is equal to k. In t-SNE, the perplexity may be viewed as a knob that sets the number of effective nearest neighbors. It is comparable with the number of nearest neighbors k that is employed in many manifold learners.
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_sub)
+
+tsne_plot %>% left_join(.,core_info)  %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle(paste0("t-sne. Perplexity = ", 50)) +
+  theme_Publication()
+```
+
+Expression profiles without qsmooth
+```{r}
+gather_lST<-gather(lengthScaledTPM_sub,sample_accession) %>% left_join(.,core_tight)
+ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))
+```
+
+Expression profiles with qsmooth. Odd spikes in the Cornea and RPE. Some weird patterns in number of lower-expressed genes (see Blood Vessel, Brain, Heart)
+```{r}
+core_tight2 <- core_tight
+core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
+gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2)
+ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))
+```
+
+Let's look at just the Cornea. Funky. 
+```{r}
+core_tight2 <- core_tight
+core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
+gather_lST <- gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='Cornea')
+ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))
+```
+Let's find the weird ones. 
+```{r}
+gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='Cornea') %>% group_by(sample_accession) %>% summarise(median(value)) %>% arrange(-`median(value)`) %>% head() %>% formattable()
+
+core_eye_info %>% filter(sample_accession=='SRS390607') %>% formattable()
+
+gather_lST<-gather(lengthScaledTPM_sub,sample_accession) %>% left_join(.,core_tight) %>% filter(sample_accession %in% c('SRS390607','SRS390608','SRS390609','SRS390610','SRS369431'))
+ggplot(gather_lST,aes(x=log2(value+1)))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))
+
+```
+
