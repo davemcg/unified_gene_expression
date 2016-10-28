@@ -15,7 +15,7 @@ source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 ```
 Testing to see if running qsmooth (https://github.com/stephaniehicks/qsmooth, weighted quantile normalization) improves the clustering performance.
 
-```{r,fig.width=2, fig.height=2.5}
+```{r,fig.width=4, fig.height=4.5}
 lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
 
 samples <- data.frame(colnames(lengthScaledTPM))
@@ -42,7 +42,7 @@ tsne_plot %>% left_join(.,core_info)  %>%
 ```
 
 No qsmooth
-```{r,fig.width=2, fig.height=2.5}
+```{r,fig.width=4, fig.height=4.5}
 set.seed(23235)
 tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_sub)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
 
@@ -63,7 +63,7 @@ ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+fa
 ```
 
 Expression profiles with qsmooth. Odd spikes in the Cornea and RPE. Some weird patterns in number of lower-expressed genes (see Blood Vessel, Brain, Heart)
-```{r,fig.width=4, fig.height=5}
+```{r,fig.width=6, fig.height=7}
 core_tight2 <- core_tight
 core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
 gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2)
@@ -71,7 +71,7 @@ ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+fa
 ```
 
 Let's look at just the Cornea. Funky. 
-```{r,fig.width=2, fig.height=2.5}
+```{r,fig.width=2, fig.height=1.5}
 core_tight2 <- core_tight
 core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
 gather_lST <- gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='Cornea')
@@ -92,15 +92,15 @@ Let's look at the number level for one of those odd samples. Uh, yikes. Let's ch
 summary(lengthScaledTPM_sub[,'SRS390607'])
 ```
 Yeah, a few. A plateau at a median of 50.
-```{r}
-apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% head(60) %>% formattable()
+```{r, fig.width=3, fig.height=2}
+apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% head(60) %>% data.frame() %>% formattable()
 
 apply(lengthScaledTPM,2,function(x) median(x)) %>% density() %>% plot()
 axis(side = 1, at=seq(0,500,10))
 ```
 
 Let's redo the qsmooth'ed density plots above, but with the low (<10) colored. Bam, that's it. 
-```{r}
+```{r, fig.width=6, fig.heigth=7}
 median_TPM <- apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% formattable()
 lows <- names(median_TPM[median_TPM<10])
 
@@ -111,7 +111,7 @@ ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=LowMedian))+
 ```
 
 Let's up the median threshold to, say, 50. This is probably a reasonable place to set it. 
-```{r}
+```{r, fig.width=6, fig.heigth=7}
 median_TPM <- apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% formattable()
 lows <- names(median_TPM[median_TPM<60])
 
@@ -128,7 +128,7 @@ Ugh, this tosses a LOT of my fetal RPE (44 originally). Eh, life.
 gather_lST %>% filter(sample_accession %in% lows) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct() %>% group_by(Tissue, Sub_Tissue) %>% summarise(Count=n()) %>% formattable()
 ```
 Redo the tsne (qsmooth'ed) and tossing the above samples. Looks better. A couple of Retina ($) samples that have wandered away (X2=10,X1=-10). 
-```{r}
+```{r, fig.width=4, fig.heigth=4.5}
 set.seed(23235)
 lengthScaledTPM_qsmooth_highExp <- as.matrix(lengthScaledTPM_qsmooth[,!colnames(lengthScaledTPM_qsmooth) %in% lows])
 tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp)+1)),perplexity = 50, check_duplicates = FALSE, theta=0.0 )
@@ -143,7 +143,7 @@ tsne_plot %>% left_join(.,core_info)  %>%
 ```
 
 Let's do a quick check on genes with overall low experession. Less than 1 count on average across all samples, for a gene. 
-```{r}
+```{r, fig.width=3, fig.heigth=2}
 density(rowSums(log2(lengthScaledTPM+1))) %>% plot()
 table((rowSums(lengthScaledTPM)/ncol(lengthScaledTPM))<1)
 lowly_expressed_genes <- row.names(lengthScaledTPM[(rowSums(lengthScaledTPM)/ncol(lengthScaledTPM)<1),])
@@ -151,7 +151,7 @@ lowly_expressed_genes <- row.names(lengthScaledTPM[(rowSums(lengthScaledTPM)/nco
 
 OK, let's also toss these and see how that changes the t-sne clustering. 
 
-```{r}
+```{r, fig.width=4, fig.height=4.5}
 set.seed(23235)
 lengthScaledTPM_qsmooth_highExp <- as.matrix(lengthScaledTPM_qsmooth[,!colnames(lengthScaledTPM_qsmooth) %in% lows])
 lengthScaledTPM_qsmooth_highExp_remove_lowGenes <- lengthScaledTPM_qsmooth_highExp[!(row.names(lengthScaledTPM_qsmooth_highExp) %in% lowly_expressed_genes),]
@@ -206,6 +206,55 @@ set.seed(23235)
 tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
+
+tsne_go <- tsne_plot %>% left_join(.,core_info)
+
+set.seed(23235)
+fit <- kmeans(tsne_go[,c('X1','X2')], 24)
+cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
+```
+
+Let's see whether having qsmooth correct for Sub Tissues improves performance.
+
+```{r}
+load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
+lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
+
+
+samples <- data.frame(colnames(lengthScaledTPM))
+colnames(samples) <- 'sample_accession'
+tissue_frame <- left_join(samples, core_info) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
+# make sure they are lined up
+tissues <- left_join(samples, tissue_frame)
+# just keep the keeper set of tissues (no prostrate, etc)
+sub <- tissues %>% filter(Tissue %in% keepers)
+lengthScaledTPM_sub<-lengthScaledTPM[,sub$sample_accession]
+qs <- qsmooth(object = lengthScaledTPM_sub,groupFactor = as.factor(sub$Sub_Tissue))
+lengthScaledTPM_qsmooth_subTissue <- qsmoothData(qs)
+
+lengthScaledTPM_qsmooth_highExp_subTissue <- as.matrix(lengthScaledTPM_qsmooth_subTissue[,!colnames(lengthScaledTPM_qsmooth_subTissue) %in% lows])
+lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue <- lengthScaledTPM_qsmooth_highExp_subTissue[!(row.names(lengthScaledTPM_qsmooth_highExp_subTissue) %in% lowly_expressed_genes),]
+
+### not 'corrected'
+set.seed(23235)
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_subTissue)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_subTissue)
+
+tsne_go <- tsne_plot %>% left_join(.,core_info)
+
+set.seed(23235)
+fit <- kmeans(tsne_go[,c('X1','X2')], 24)
+cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
+
+
+```
+Now with the corrections....kind of middling. May not be enough tissues per group. 
+```{r}
+set.seed(23235)
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue)
 
 tsne_go <- tsne_plot %>% left_join(.,core_info)
 
