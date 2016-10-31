@@ -1,20 +1,26 @@
 # unified_gene_expression
-Meta-analyze and collate genome-wide gene expression from <b>normal human tissues</b> (GTEx, Illumina Human Body Map, ENCODE) and eye tissues.
+Meta-analyze and collate genome-wide gene expression from <b>normal human tissues and popular cell lines</b> (GTEx and ENCODE, respectively) and eye tissues.
 
-These large repositories, unfortunately, largely lack eye tissues (RPE/choroid, retina, cornea). Several studies have done RNA-seq in (relatively to GTEx) small numbers of samples in RPE/choroid (both derived from embryonic stem cells and straight tissue),  retina (tissue, some have done macula vs peripheral), or cornea. However they are all disjointed at the bioinformatic level. There would be tremendous value in unifying analysis across all of these tissues. 
+These large repositories, unfortunately, largely lack eye tissues or cell lines (RPE/choroid, retina, cornea). Several studies have done RNA-seq in (relatively to GTEx) small numbers of samples in RPE/choroid (both derived from embryonic stem cells and straight tissue),  retina (tissue, some have done macula vs peripheral), or cornea. However they are all disjointed at the bioinformatic level. There would be tremendous value in unifying analysis across all of these tissues. 
 
-GTEx is a tremendous resource, sequencing dozens to hundreds of different people across many human organs. It is, in my mind, the standard. ENCODE and Illumina have similar analyses, but at a far smaller level. Integration with this GTEx would be valuable for at least two reasons: 
+GTEx is a tremendous resource, sequencing dozens to hundreds of different people across many human organs. 
+
+Integration with this GTEx would be valuable for at least two reasons: 
 
 1. Are RPE or retina global gene expression approximately similar to any of the GTEx tissues? 
 - then it would be possible to use GTEx's allele-specific expression set to look whether common variation influences genes known to be important in eye function (e.g. ABCA4)
 2. Which genes are differentially expressed in eye relative to other human tissues?
 
-Unfortunately GTEx uses a very boutique (some woudl say controversial) method of RNA-seq quantification. 
+Unfortunately GTEx uses a very boutique (some would say controversial) method of RNA-seq quantification. 
 - https://liorpachter.wordpress.com/2013/10/21/gtex/
+
+ENCODE is also tremendous, integrating RNA-seq/methyl-seq/ChIP-seq across many cell lines. While they have a more standard pipeline, it would be expensive to replicate with the GTEx data. 
 
 GTEx's software is used by no one but themselves. To make this a more useful resouce, I think it's important to re-process <b> everything </b> in a similar manner. 
 
-This will be computationally very expensive. This project has two things in its favor:
+
+
+This will be computationally expensive, especially with a 'classic' workflow (aligment to reference genome). This project has two things in its favor:
 1. hpc.nih.gov
 2. salmon/kallisto
 
