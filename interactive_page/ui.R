@@ -4,13 +4,13 @@
 
 library(shiny)
 library(ggplot2)
-load('all_human_genes.Rdata')
+load('~/git/unified_gene_expression/data/tx_genes.Rdata')
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Gene Expression for Human Tissues"),
+  titlePanel("Gene Expression for Human Tissues and Cells"),
 
   # Sidebar with a slider input for the number of bins
   sidebarLayout(
@@ -18,14 +18,14 @@ shinyUI(fluidPage(
     # Show a plot of the generated distribution
     mainPanel(
       h3('Interactive boxplot of pan-human gene expression', align="center"),
-      selectInput("Gene","Genes:", choices=all_genes, 
+      selectInput("Gene","Genes:", choices=tx_genes$gene.Name, 
                   selected='RP1',multiple=TRUE),
-      plotOutput("boxPlot",height=700), 
-      h1(''),
-      h3('Distance between each RNA-seq experiment', align="center"),
-      h5('Closer points are more related',align="center"),
-      img(src='tsne_2016-06-29.svg'), 
-      width='90%'
+      plotOutput("boxPlot",height=700) 
+      #h1(''),
+      #h3('Distance between each RNA-seq experiment', align="center"),
+      #h5('Closer points are more related',align="center"),
+      #img(src='tsne_2016-06-29.svg'), 
+      #width='90%'
     )
   )
 ))
