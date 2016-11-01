@@ -18,7 +18,7 @@ shinyUI(fluidPage(
     # Show a plot of the generated distribution
     mainPanel(
       h3('Interactive boxplot of pan-human gene expression', align="center"),
-      selectInput("Gene","Genes:", choices=tx_genes$gene.Name, 
+      selectInput("Gene","Genes:", choices=unique(tx_genes$gene.Name), 
                   selected='RP1',multiple=TRUE),
       plotOutput("boxPlot",height=700) 
       #h1(''),
