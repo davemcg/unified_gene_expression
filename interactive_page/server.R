@@ -20,13 +20,14 @@ shinyServer(function(input, output) {
   output$boxPlot <- renderPlot({
     gene <- input$Gene
     tissue <- input$Tissue
+    col_num <- input$num
     plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
       gather(sample_accession, value, -Gene.Name) %>% 
       left_join(.,core_tight)
     plot_data <- plot_data %>% filter(Sub_Tissue %in% tissue)
     # draw the histogram with the specified number of bins
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue)) + 
-      geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=1) +
+      geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
