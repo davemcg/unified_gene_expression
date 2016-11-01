@@ -83,3 +83,4 @@ core_info <-
 keepers <- c('RPE','Retina','Cornea',' Adipose Tissue ',' Adrenal Gland ',' Blood ',' Blood Vessel ',' Brain ',' Breast ',' Colon ',' Esophagus ',' Heart ',' Liver ',' Lung ',' Muscle ',' Nerve ',' Pancreas ',' Pituitary ',' Salivary Gland ',' Skin ',' Small Intestine ',' Spleen ',' Stomach ',' Thyroid ')
 
 core_tight <- core_info %>% filter(Tissue %in% keepers)
+#save(core_tight, file='interactive_page/metaData.Rdata')
