@@ -19,26 +19,27 @@ shinyUI(
        sidebarLayout(
         sidebarPanel(width=3,
           selectInput("Gene","Select Genes:", choices=unique(sort(tx_genes$gene.Name)), 
-            selected='ABCA4',multiple=TRUE),
+            selected=c('ABCA4','TYRP1'),multiple=TRUE),
           selectInput("Tissue","Select Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
-            selected="Retina",multiple=TRUE)
+            selected=c(" Whole Blood ",
+                       " Pancreas ",
+                       " Cells - EBV-transformed lymphocytes ",
+                       " Cells - Transformed fibroblasts ",
+                       " Liver ",
+                       " Lung ",
+                       "Cornea",
+                       "fetalRetina",
+                       "fetalRPE",
+                       "RPE",
+                       "Retina"),multiple=TRUE)
         ),
       mainPanel(
-      h3('Interactive boxplot of pan-human gene expression', align="center"),
-      plotOutput("boxPlot",height=1000, width="auto")
+        h3('Interactive boxplot of pan-human gene expression', align="center"),
+        plotOutput("boxPlot")
       )
     )
-  ),
-    tabPanel('2D Tissue Clustering',
-      fluidPage(
-        titlePanel('t-SNE clustering of tissues and cell lines'),
-        sidebarLayout(
-          sidebarPanel(width=3,
-            selectInput("Tissue","Select Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
-              selected="Retina",multiple=TRUE)
-          ),
-        mainPanel(
-          h3('Test'))
+  )),
+    tabPanel('2D Tissue Clustering',plotOutput("tsne"))
       )
     )
-))))
+
