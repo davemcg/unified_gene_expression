@@ -11,7 +11,7 @@ load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 shinyUI(
   navbarPage('eyeIntegration',
     tabPanel('BoxPlot',
-      fluidPage(tags$head(tags$style(".shiny-plot-output{height:100vh !important;}")),
+      fluidPage(tags$head(tags$style(".shiny-plot-output{height:80vh !important;}")),
         # Application title
         #titlePanel("Gene Expression for Human Tissues and Cells"),
 
