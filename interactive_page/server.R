@@ -17,8 +17,6 @@ long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
-  #boxplot_height <- reactive(return 350 * length(input$Gene))
-  
   output$boxPlot <- renderPlot({
     gene <- input$Gene
     tissue <- input$Tissue
@@ -31,9 +29,8 @@ shinyServer(function(input, output) {
       geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=1) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
-    print(p)
-    #hist(x, breaks = bins, col = 'darkgray', border = 'white')
-  },height=1000)
+    p
+  },height='auto')
   
   output$tsne <- renderPlot({
     tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)

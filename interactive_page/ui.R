@@ -12,12 +12,11 @@ shinyUI(
   navbarPage('eyeIntegration',
     tabPanel('BoxPlot',
       fluidPage(
-       # Application title
-       titlePanel("Gene Expression for Human Tissues and Cells"),
+        # Application title
+        #titlePanel("Gene Expression for Human Tissues and Cells"),
 
-       # Show a plot of the generated distribution
-       sidebarLayout(
-        sidebarPanel(width=3,
+        # Show a plot of the generated distribution
+        fluidRow(column(3,
           selectInput("Gene","Select Genes:", choices=unique(sort(tx_genes$gene.Name)), 
             selected=c('ABCA4','TYRP1'),multiple=TRUE),
           selectInput("Tissue","Select Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
@@ -33,9 +32,10 @@ shinyUI(
                        "RPE",
                        "Retina"),multiple=TRUE)
         ),
+      column(9,
       mainPanel(
         h3('Interactive boxplot of pan-human gene expression', align="center"),
-        plotOutput("boxPlot")
+        plotOutput("boxPlot"))
       )
     )
   )),
