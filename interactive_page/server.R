@@ -30,8 +30,8 @@ shinyServer(function(input, output) {
       rownames_to_column(var='sample_accession') %>% left_join(.,core_tight)
     # draw the histogram with the specified number of bins
     colnames(plot_data)[2]<-'lsTPM'
-    p<-ggplot(data=data.frame(plot_data),aes(x=Tissue,y=log2(as.numeric(lsTPM)+1),colour=Sub_Tissue)) + 
-      geom_jitter(size=2) + geom_boxplot(alpha=0.5) + ggtitle(gene) +
+    p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(as.numeric(lsTPM)+1),colour=Tissue)) + 
+      geom_jitter(size=2) + geom_boxplot(alpha=0.5) + ggtitle(gene) + facet_wrap(~gene) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     
