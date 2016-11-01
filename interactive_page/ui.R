@@ -19,7 +19,7 @@ shinyUI(fluidPage(
     mainPanel(
       h3('Interactive boxplot of pan-human gene expression', align="center"),
       selectInput("Gene","Genes:", choices=unique(tx_genes$gene.Name), 
-                  selected='RP1',multiple=TRUE),
+                  selected='ABCA4',multiple=TRUE),
       plotOutput("boxPlot",height=700) 
       #h1(''),
       #h3('Distance between each RNA-seq experiment', align="center"),
