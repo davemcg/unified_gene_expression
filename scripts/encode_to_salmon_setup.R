@@ -19,11 +19,11 @@ create_fastq <- function(encode_id){
     mutate(href_complete=paste0(encode_base_url,href)) %>% 
     group_by(as.character(biological_replicates)) %>% 
     summarise(reads=paste(as.character(href_complete),collapse=',')) %>% 
-    mutate(all_fastq=paste(reads,collapse='||')) %>% 
+    mutate(all_fastq=paste(reads,collapse="__")) %>% 
     select(all_fastq) %>% 
     distinct() %>% 
     .[['all_fastq']]
 }
 
 bash_commands_for__encode_to_salmon.py <-apply(encode_metaData,1,function(x) paste(x['Accession'], create_fastq(x['Accession']), 'paired', paste = ' '))
-  
+write.table(bash_commands_for__encode_to_salmon.py,file='~/git/unified_gene_expression/scripts/encode_to_salmon.sh',quote=F,row.name=F,col.names = F)
