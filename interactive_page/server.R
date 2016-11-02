@@ -35,8 +35,11 @@ shinyServer(function(input, output) {
   
   output$tsne <- renderPlotly({
     tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)
-    p <- tsne_plot %>% ggplot(aes(X1,X2,colour = Tissue, shape = Tissue, label=paste(sample_accession, gsub('\\|\\|', '<br>', sample_attribute), sep='<br>')))  +
-      geom_point(size=4) + scale_shape_manual(values=c(0:24,35:45)) +
+    
+    p <- tsne_plot %>% 
+      mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep ='')) %>% 
+      ggplot(aes(X1,X2,colour = Tissue, shape = Tissue, label=Info ))  +
+      geom_point(size=4) + scale_shape_manual(values=c(0:24,35:50)) +
       theme_bw()
     ggplotly(p)
   })
