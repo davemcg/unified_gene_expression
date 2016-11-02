@@ -31,7 +31,7 @@ shinyServer(function(input, output) {
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
-  },height='auto')
+    output$info <- renderPrint({nearPoints(plot_data, input$plot_hover)})},height='auto')
   
   output$tsne <- renderPlot({
     tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)

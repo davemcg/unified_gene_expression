@@ -37,7 +37,10 @@ shinyUI(
       column(10,
       mainPanel(
         h3('Interactive boxplot of pan-human gene expression', align="center"),
-        plotOutput("boxPlot"))
+        plotOutput("boxPlot"),
+        hover = hoverOpts(
+          id = "plot_hover")
+        )
       )
     )
   )),
