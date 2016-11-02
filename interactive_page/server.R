@@ -8,31 +8,36 @@ library(tidyverse)
 source('~/git/scripts/theme_Publication.R')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed.Rdata')
 load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
+load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity.Rdata')
 lengthScaledTPM_qsmooth_highExp_remove_lowGenes <- data.frame(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
 lengthScaledTPM_qsmooth_highExp_remove_lowGenes$Gene.Name <- row.names(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
 shiny_data <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes
+core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
+long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
-  # Expression that generates a histogram. The expression is
-  # wrapped in a call to renderPlot to indicate that:
-  #
-  #  1) It is "reactive" and therefore should re-execute automatically
-  #     when inputs change
-  #  2) Its output type is a plot
-  
   output$boxPlot <- renderPlot({
-    
     gene <- input$Gene
-    data <- shiny_data %>% filter(Gene.Name %in% Gene) 
-    plot_data <- t(data) %>% data.frame() %>% 
-      rownames_to_column(var='sample_accession') %>% left_join(.,core_tight)
+    tissue <- input$Tissue
+    col_num <- input$num
+    plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
+      gather(sample_accession, value, -Gene.Name) %>% 
+      left_join(.,core_tight)
+    plot_data <- plot_data %>% filter(Sub_Tissue %in% tissue)
     # draw the histogram with the specified number of bins
-    p<-ggplot(data=plot_data,aes(x=Tissue,y=log2(as.numeric(plot_data[,2])+1),colour=Sub_Tissue)) + 
-      geom_jitter(size=2) + geom_boxplot(alpha=0.5) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-      ylab("Gene Expression | log2(lengthScaledTPM+1) ")
-    print(p)
-    #hist(x, breaks = bins, col = 'darkgray', border = 'white')
-  }, height=700)
+    p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue)) + 
+      geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
+    p
+    output$info <- renderPrint({nearPoints(plot_data, input$plot_hover)})},height='auto')
+  
+  output$tsne <- renderPlot({
+    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)
+    p <- tsne_plot %>% ggplot(aes(X1,X2,colour = Tissue, shape = Tissue))  +
+      geom_point(size=4) + scale_shape_manual(values=c(0:24,35:45)) +
+      theme_Publication()
+    plot(p)
+  }, height=700, width=1000)
 })
