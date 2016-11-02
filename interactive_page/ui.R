@@ -11,8 +11,7 @@ load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 shinyUI(
   navbarPage('eyeIntegration',
     tabPanel('BoxPlot',
-      fluidPage(tags$head(tags$style(".shiny-plot-output{height:80vh !important; max-width:2000px}")),
-                tags$head(tags$style(type="text/css", ".container-fluid {  max-width: 1200px}")),
+      fluidPage(
         # Application title
         #titlePanel("Gene Expression for Human Tissues and Cells"),
 
@@ -32,17 +31,17 @@ shinyUI(
                        "fetalRPE",
                        "RPE",
                        "Retina"),multiple=TRUE),
-          numericInput("num", label = "Number of columns:", value = 1)
+          numericInput("num", label = "Number of columns:", value = 1, min = 1)
         ),
       column(10,
       mainPanel(
         h3('Interactive boxplot of pan-human gene expression', align="center"),
-        plotOutput("boxPlot"),
+        plotOutput("boxPlot")
         )
       )
     )
   )),
-    tabPanel('2D Tissue Clustering',plotOutput("tsne"))
+    tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px'))
       )
     )
 

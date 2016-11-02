@@ -31,13 +31,13 @@ shinyServer(function(input, output) {
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
-  })
+  }, height=function(){(500*length(input$Gene))/(input$num)})
   
-  output$tsne <- renderPlot({
+  output$tsne <- renderPlotly({
     tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)
-    p <- tsne_plot %>% ggplot(aes(X1,X2,colour = Tissue, shape = Tissue))  +
+    p <- tsne_plot %>% ggplot(aes(X1,X2,colour = Tissue, shape = Tissue, label=paste(sample_accession, gsub('\\|\\|', '<br>', sample_attribute), sep='<br>')))  +
       geom_point(size=4) + scale_shape_manual(values=c(0:24,35:45)) +
-      theme_Publication()
-    plot(p)
-  }, height=700, width=1000)
+      theme_bw()
+    ggplotly(p)
+  })
 })
