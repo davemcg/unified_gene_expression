@@ -16,11 +16,12 @@ shinyUI(
         #titlePanel("Gene Expression for Human Tissues and Cells"),
 
         # Show a plot of the generated distribution
-        fluidRow(column(2,
-          selectInput("Gene","Genes:", choices=unique(sort(tx_genes$gene.Name)), 
-            selected=c('ABCA4','TYRP1'),multiple=TRUE),
-          selectInput("Tissue","Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
-            selected=c(" Whole Blood ",
+        fluidRow(
+          column(2,
+            selectInput("Gene","Genes:", choices=unique(sort(tx_genes$gene.Name)), 
+              selected=c('ABCA4','TYRP1'),multiple=TRUE),
+            selectInput("Tissue","Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
+              selected=c(" Whole Blood ",
                        " Pancreas ",
                        " Cells - EBV-transformed lymphocytes ",
                        " Cells - Transformed fibroblasts ",
@@ -31,17 +32,32 @@ shinyUI(
                        "fetalRPE",
                        "RPE",
                        "Retina"),multiple=TRUE),
-          numericInput("num", label = "Number of columns:", value = 1, min = 1)
-        ),
-      column(10,
-      mainPanel(
-        h3('Interactive boxplot of pan-human gene expression', align="center"),
-        plotOutput("boxPlot")
+            numericInput("num", label = "Number of columns:", value = 2, min = 1)
+          ),
+        
+        column(10,
+          mainPanel(
+            h3('Interactive boxplot of pan-human gene expression', align="center"),
+            plotOutput("boxPlot")
+          )
         )
       )
     )
-  )),
-    tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px'))
-      )
-    )
+  ),
+    tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px')),
+    tabPanel('Data Table',
+      fluidPage(
+        fluidRow(
+          column(3,
+            selectInput("table_tissue",
+              "Tissue:",
+              unique(as.character(core_tight$Tissue)))),
+          column(3,
+            selectInput("table_gene",
+              "Gene:",
+              unique(as.character(shiny_data$Gene.Name))))
+      ), fluidRow(
+        dataTableOutput("table")
+    ))))
+)
 
