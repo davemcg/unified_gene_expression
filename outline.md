@@ -10,7 +10,14 @@ GTEx provides gene/transcript level expression datasets across dozens of people 
   * no inclusion in GTEx and ENCODE
   * disparate kind-of-small n studies
 - RNA-seq processing is expensive computationally
-    * alignment and gene-level counting for each sample takes many (6+) hours
+  * alignment and gene-level counting for each sample takes many (6+) hours
 - New algorithms (kallisto/sleuth) allow far faster computation
-    * directly get gene counts in less than 2 hours on a 8-core node
- 
+  * directly get gene counts in less than 2 hours on a 8-core node
+- Collating publically available RNA-seq sets gives over 200 eye-specific human tissues
+  * allows for higher confidence DE (retina <-> RPE <-> cornea)
+  * ID eye-specific genes (not or very lowly expressed in other tissues)
+  * ID genes NOT expressed in eye tissues
+- Integration of GTEx and ENCODE data allows for high-value utilization of public data
+  * if any GTEx tissues have grossly similar expression to eye tissues, then you can leverage eQTL, ASE from that tissue
+  * if ENCODE matches by RNA-seq, then you can leverage ChIP-seq data
+  
