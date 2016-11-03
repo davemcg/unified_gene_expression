@@ -45,7 +45,8 @@ GTEx provides gene/transcript level expression datasets across dozens of people 
 - Network analysis (WGCNA, GSEA)?
 - Pseudo ASE/eQTL
   * Use RNA-seq data to call SNPs, then can do ASE/eQTL analysis
+  * https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-015-0152-4
 - Loop back to known eye biology
   * AMD loci?
-  * Get Rob/Brian feedback!!!
   * GTEx fibroblast ASE/eQTL have any eye biology links?
+  * Get Rob/Brian feedback/idea!!!
