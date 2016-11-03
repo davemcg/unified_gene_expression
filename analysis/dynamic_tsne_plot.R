@@ -17,3 +17,8 @@ all_values <- function(x) {
 dynamic_plot%>% ggvis(~X1,~X2,fill = ~ Tissue,shape = ~Tissue, key := ~id) %>% 
   layer_points() %>% add_tooltip(all_values, c('hover','click'))
 
+
+
+p <- 
+  ggplot(dynamic_plot,aes(x=X1,y=X2, shape=Sub_Tissue, colour=Tissue, label=sample_attribute)) + geom_point() + scale_shape_manual(values=c(0:24,35:75))
+plot_ly(p)
