@@ -41,11 +41,16 @@ GTEx provides gene/transcript level expression datasets across dozens of people 
   * what is unique (only expressed in eye) to retina, rpe, cornea?
   * what is not expressed in eye tissues?
 - DE with DESeq2
-- DTE with sleuth? Or DESeq2?
+- DTE with Sleuth?
+  * crap, would need bootstraps
+- Transcriptome
+  * cufflinks
+  * or try to get pre-published transcriptomes for retina/rpe and add to gencode v25 transcript fasta file then re-run salmon?
 - Network analysis (WGCNA, GSEA)?
 - Pseudo ASE/eQTL
   * Use RNA-seq data to call SNPs, then can do ASE/eQTL analysis
   * https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-015-0152-4
+  * Would have to call RNA-seq with STAR.....
 - Loop back to known eye biology
   * AMD loci?
   * GTEx fibroblast ASE/eQTL have any eye biology links?
