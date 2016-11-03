@@ -46,5 +46,7 @@ low_usage <- apply(all_ratios,1, function(x) sum(x<0.1,na.rm=T))
 # summary
 summary(low_usage)
 # num with all samples have < 10% tx usage
-table(low_usage[low_usage>(ncol(tx_c)-3)])
+total_samples_left_minus_1 <- (ncol(tx_c)-3)
+table(low_usage[low_usage>total_samples_left_minus_1])
 
+tx_ids_to_keep <- gene_sum_tx[low_usage<total_samples_left_minus_1+1,] %>% .[['Transcript.ID']]
