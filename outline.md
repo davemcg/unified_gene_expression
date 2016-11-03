@@ -21,3 +21,31 @@ GTEx provides gene/transcript level expression datasets across dozens of people 
   * if any GTEx tissues have grossly similar expression to eye tissues, then you can leverage eQTL, ASE from that tissue
   * if ENCODE matches by RNA-seq, then you can leverage ChIP-seq data
   
+# Results
+- How samples were selected
+  * Queried SRA database for *retina*, *RPE*, *cornea*, *eye* with *RNA-seq*
+- Workflow
+  * Stage 1: ID samples, pull metadata, pull SRA file, convert to fastq, quantitate with Salmon
+  * Stage 2: tximport to get gene-level TPM, remove genes with low counts across all samples, remove Samples with low median gene counts > 1, t-sne cluster to ID outliers, qsmooth to quantile normalize TPM
+- Accounting
+  * Eye, GTEx, ENCODE 
+  * table: tissue, study, number of samples (pre and post filter)
+- Clustering
+  * recapitulate organ grouping in t-sne parsing
+  * see fetal (either tissue or cell line) RPE and retina cluster away from adult RPE and retina
+  * Retina is a unique tissue
+  * RPE/cornea tends to stay together
+    * closest GTEx tissue is transformed fibroblasts to RPE/cornea
+  * ENCODE????
+- Basic gene list parsing
+  * what is unique (only expressed in eye) to retina, rpe, cornea?
+  * what is not expressed in eye tissues?
+- DE with DESeq2
+- DTE with sleuth? Or DESeq2?
+- Network analysis (WGCNA, GSEA)?
+- Pseudo ASE/eQTL
+  * Use RNA-seq data to call SNPs, then can do ASE/eQTL analysis
+- Loop back to known eye biology
+  * AMD loci?
+  * Get Rob/Brian feedback!!!
+  * GTEx fibroblast ASE/eQTL have any eye biology links?
