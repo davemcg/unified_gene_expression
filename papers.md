@@ -1,18 +1,18 @@
-# Important software and tools
+## Important software and tools
 
-# Salmon
+### Salmon
 
-# R, tidyverse
+### R, tidyverse
 
-# t-sne
+### t-sne
 
-# qsmooth
+### qsmooth
 
-# deseq2
+### deseq2
 
-# gencode 
+### gencode 
 
-# 
+### 
 
-# Isoform prefilter concept
+## Isoform prefilter concept
 https://www.ncbi.nlm.nih.gov/pubmed/26813113
