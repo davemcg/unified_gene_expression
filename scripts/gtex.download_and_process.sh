@@ -1,3 +1,7 @@
+#!/bin/bash
+module load sratoolkit
+module load samtools
+
 ~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py SRS389010 SRR654862 paired
 ~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py SRS627765 SRR1338426 paired
 ~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py SRS408811 SRR819820 paired
