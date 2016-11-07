@@ -23,7 +23,7 @@ library = args.library
 # let's keep sra and fastq files in /scratch
 sra_path = '/scratch/mcgaugheyd/' + sample_accession
 # create folder (don't care if it already exists) for counts
-salmon_main_dir = '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts'
+salmon_main_dir = '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed'
 mkdir_salmon_call = 'mkdir ' + salmon_main_dir + '/' + sample_accession
 subprocess.call(mkdir_salmon_call, shell=True)
 # create main folder in /scratch
@@ -79,13 +79,13 @@ if library == 'paired':
 	r_reads = glob.glob(sra_path + '/*_2.fastq.gz')
 	f_reads = str(' '.join(f_reads))
 	r_reads = str(' '.join(r_reads))
-	salmon_call = 'sbatch --partition=quick --cpus-per-task 16 ~/git/unified_gene_expression/scripts/run_salmon.sh' + \
+	salmon_call = 'sbatch  --time=6:00:00  --cpus-per-task 16 ~/git/unified_gene_expression/scripts/run_salmon2.sh' + \
 					r' \"' + f_reads + r'\" \"' + r_reads + r'\" paired ' + salmon_main_dir + '/' + sample_accession
 	subprocess.check_call(salmon_call, shell=True)
 if library == 'single': 
 	reads = glob.glob(sra_path + '/*fastq.gz')
 	reads = str(' '.join(reads))
-	salmon_call = 'sbatch --partition=quick --cpus-per-task 16 ~/git/unified_gene_expression/scripts/run_salmon.sh' + \
+	salmon_call = 'sbatch --time=6:00:00 --cpus-per-task 16 ~/git/unified_gene_expression/scripts/run_salmon2.sh' + \
 					r' \"' + reads + r'\" \"' + 'INTENTIONAL_BLANK' + r'\" single ' + salmon_main_dir + '/' + sample_accession
 	subprocess.check_call(salmon_call, shell=True)
 
