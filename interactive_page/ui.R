@@ -10,7 +10,7 @@ load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 # Define UI for application that draws a histogram
 shinyUI(
   navbarPage('eyeIntegration',
-    tabPanel('BoxPlot',
+    tabPanel('Pan-Tissue BoxPlot',
       fluidPage(
         # Application title
         #titlePanel("Gene Expression for Human Tissues and Cells"),
@@ -37,14 +37,32 @@ shinyUI(
         
         column(10,
           mainPanel(
-            h3('Interactive boxplot of pan-human gene expression', align="center"),
+            h3('Boxplot of pan-human gene expression', align="center"),
             plotOutput("boxPlot")
           )
         )
       )
     )
   ),
+    tabPanel('Eye Boxplot',
+      fluidPage(
+        fluidRow(
+          column(2,
+            selectInput("eyeGene","Genes:", choices=unique(sort(tx_genes$gene.Name)), 
+            selected=c('ABCA4','TYRP1'),multiple=TRUE),
+            numericInput("eyeNum", label = "Number of columns:", value = 2, min = 1)
+        ),
+          column(10,
+            mainPanel(
+              h3('Interactive boxplot of human eye gene expression', align="center"),
+              plotlyOutput("eyeBoxPlot")
+            )
+          )
+        
+      ))),
+  
     tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px')),
+  
     tabPanel('Data Table',
       fluidPage(
         fluidRow(
