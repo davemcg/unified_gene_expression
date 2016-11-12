@@ -7,6 +7,7 @@ library(plotly)
 library(shiny)
 library(ggplot2)
 library(tidyverse)
+library(RSQLite)
 source('~/git/scripts/theme_Publication.R')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed.Rdata')
 load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
@@ -16,7 +17,6 @@ lengthScaledTPM_qsmooth_highExp_remove_lowGenes$Gene.Name <- row.names(lengthSca
 shiny_data <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes
 core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
 long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
-
 # responsive stuff!
 shinyServer(function(input, output) {
   #########
