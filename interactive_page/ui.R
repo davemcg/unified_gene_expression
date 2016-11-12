@@ -44,17 +44,17 @@ shinyUI(
       )
     )
   ),
-    tabPanel('Eye Boxplot',
+    tabPanel('Eye Plot',
       fluidPage(
         fluidRow(
           column(2,
             selectInput("eyeGene","Genes:", choices=unique(sort(tx_genes$gene.Name)), 
-            selected=c('ABCA4','TYRP1'),multiple=TRUE),
-            numericInput("eyeNum", label = "Number of columns:", value = 2, min = 1)
+            selected=c('ABCA4','RPE65','TYRP1'),multiple=TRUE),
+            numericInput("eyeNum", label = "Number of columns:", value = 3, min = 1)
         ),
           column(10,
             mainPanel(
-              h3('Interactive boxplot of human eye gene expression', align="center"),
+              h3('Interactive scatter plot of eye-tissue gene expression', align="center"),
               plotlyOutput("eyeBoxPlot")
             )
           )
