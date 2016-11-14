@@ -63,7 +63,12 @@ shinyUI(
         
       ))),
   
-    tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px')),
+    tabPanel('2D Tissue Clustering',
+      fluidPage(
+        fluidRow(plotlyOutput("tsne",height = '800px')),
+        fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
+      )
+    ),
   
     tabPanel('Data Table',
       fluidPage(

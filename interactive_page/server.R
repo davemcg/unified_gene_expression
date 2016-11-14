@@ -58,8 +58,10 @@ shinyServer(function(input, output) {
   ##############
   # tsne
   ##############
+  
   output$tsne <- renderPlotly({
-    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)
+    perplexity_level <- input$perplexity
+    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==perplexity_level)
     
     p <- tsne_plot %>% 
       mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep ='')) %>% 
