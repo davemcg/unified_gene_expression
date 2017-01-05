@@ -4,13 +4,15 @@
 
 library(shiny)
 library(ggplot2)
-load('~/git/unified_gene_expression/data/tx_genes.Rdata')
-load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
-
+library(plotly)
+load('~/git/unified_gene_expression/interactive_page/gene_names.Rdata')
+load('~/git/unified_gene_expression/interactive_page/tissue_info.RData')
+print('Data loaded')
+print(Sys.time())
 # Define UI for application that draws a histogram
 shinyUI(
   navbarPage('eyeIntegration',
-    tabPanel('BoxPlot',
+    tabPanel('Pan-Tissue BoxPlot',
       fluidPage(
         # Application title
         #titlePanel("Gene Expression for Human Tissues and Cells"),
@@ -18,9 +20,9 @@ shinyUI(
         # Show a plot of the generated distribution
         fluidRow(
           column(2,
-            selectInput("Gene","Genes:", choices=unique(sort(tx_genes$gene.Name)), 
+            selectInput("Gene","Genes:", choices=unique(sort(gene_names$Gene.Name)), 
               selected=c('ABCA4','TYRP1'),multiple=TRUE),
-            selectInput("Tissue","Tissues:", choices=unique(sort(core_tight$Sub_Tissue)), 
+            selectInput("Tissue","Tissues:", choices=unique(sort(tissue_info$Sub_Tissue)), 
               selected=c(" Whole Blood ",
                        " Pancreas ",
                        " Cells - EBV-transformed lymphocytes ",
@@ -37,27 +39,51 @@ shinyUI(
         
         column(10,
           mainPanel(
-            h3('Interactive boxplot of pan-human gene expression', align="center"),
+            h3('Boxplot of pan-human gene expression', align="center"),
             plotOutput("boxPlot")
           )
         )
       )
     )
   ),
-    tabPanel('2D Tissue Clustering',plotlyOutput("tsne",height = '800px')),
+    tabPanel('Eye Plot',
+      fluidPage(
+        fluidRow(
+          column(2,
+            selectInput("eyeGene","Genes:", choices=unique(sort(gene_names$Gene.Name)), 
+            selected=c('ABCA4','RPE65','TYRP1'),multiple=TRUE),
+            numericInput("eyeNum", label = "Number of columns:", value = 3, min = 1)
+        ),
+          column(10,
+            mainPanel(
+              h3('Interactive scatter plot of eye-tissue gene expression', align="center"),
+              plotlyOutput("eyeBoxPlot")
+            )
+          )
+        
+      ))),
+  
+    tabPanel('2D Tissue Clustering',
+      fluidPage(
+        fluidRow(plotlyOutput("tsne",height = '800px')),
+        fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
+      )
+    ),
+  
     tabPanel('Data Table',
       fluidPage(
         fluidRow(
           column(3,
             selectInput("table_tissue",
               "Tissue:",
-              unique(as.character(core_tight$Tissue)))),
+              unique(as.character(tissue_info$Tissue)))),
           column(3,
             selectInput("table_gene",
               "Gene:",
-              unique(as.character(shiny_data$Gene.Name))))
+              unique(as.character(gene_names$Gene.Name))))
       ), fluidRow(
         dataTableOutput("table")
     ))))
 )
-
+print('Data loaded')
+print(Sys.time())

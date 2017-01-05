@@ -21,14 +21,15 @@ encode_sample_ID = args.encode_sample_ID
 encode_fastq_urls = args.encode_fastq_urls
 library = args.library
 
+# create main folder in /scratch
+subprocess.call('mkdir /scratch/mcgaugheyd', shell=True)
 # let's download fastq files to /scratch
 temp_folder = '/scratch/mcgaugheyd/' + encode_sample_ID
 # create folder (don't care if it already exists) for counts
 salmon_main_dir = '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed'
 mkdir_salmon_call = 'mkdir ' + salmon_main_dir + '/' + encode_sample_ID
 subprocess.call(mkdir_salmon_call, shell=True)
-# create main folder in /scratch
-subprocess.call('mkdir /scratch/mcgaugheyd', shell=True)
+
 
 # download each fastq file 
 #try:

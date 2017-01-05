@@ -3,6 +3,7 @@
 # http://davetang.org/muse/2014/01/03/using-shiny/
 
 # load stuff for server
+library(plotly)
 library(shiny)
 library(ggplot2)
 library(tidyverse)
@@ -15,7 +16,6 @@ lengthScaledTPM_qsmooth_highExp_remove_lowGenes$Gene.Name <- row.names(lengthSca
 shiny_data <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes
 core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
 long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
-
 # responsive stuff!
 shinyServer(function(input, output) {
   #########
@@ -35,11 +35,32 @@ shinyServer(function(input, output) {
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
   }, height=function(){(500*length(input$Gene))/(input$num)})
+  
+  #########
+  # eye boxplot
+  #########
+  output$eyeBoxPlot <- renderPlotly({
+    gene <- input$eyeGene
+    col_num <- input$eyeNum
+    eye_plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
+      gather(sample_accession, value, -Gene.Name) %>% 
+      left_join(.,core_tight) %>% 
+      mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep =''))
+    eye_plot_data <- eye_plot_data %>% filter(Tissue %in% c('Retina','RPE','Cornea'))
+    eye_p<-ggplot(data=data.frame(eye_plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue, label=Info)) + 
+      geom_jitter(size=1) + xlab('')  +  facet_wrap(~Gene.Name, ncol=col_num) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
+      theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,40,0,0)))
+    ggplotly(eye_p, width = 800, height=600) %>% layout(margin=list(b=100))
+  })
   ##############
   # tsne
   ##############
+  
   output$tsne <- renderPlotly({
-    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==40)
+    perplexity_level <- input$perplexity
+    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==perplexity_level)
     
     p <- tsne_plot %>% 
       mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep ='')) %>% 
