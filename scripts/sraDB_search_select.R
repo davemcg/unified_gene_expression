@@ -2,8 +2,8 @@ library(RSQLite)
 library(SRAdb)
 library(tidyverse)
 library(stringr)
-#
-getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
+# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
+# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-04.sqlite.gz')
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
@@ -128,6 +128,7 @@ selected_sites <-
 
 # randomly select 5 male and 5 female from each
 set.seed(138835)
+skip_sites <- c(' Breast - Mammary Tissue ', ' Cervix - Ectocervix ', ' Cervix - Endocervix ', ' Fallopian Tube ', ' Ovary ', ' Prostate ', ' Testis ', ' Uterus ', ' Vagina ')
 swarm_call <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
@@ -140,3 +141,24 @@ write.table(swarm_call, file='~/git/unified_gene_expression/scripts/gtex_call.sw
 
 # save gtex metadata
 save(gtex, file='data/gtex_sraMetadata.Rdata')
+
+# do the rest now
+set.seed(138835)
+subset_samples <- 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% sample_n(5) %>% .[['sample_accession']]
+
+full_call <- 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  group_by(Site, Gender) %>% 
+  filter(!sample_accession %in% subset_samples) %>% 
+  filter(!Site %in% skip_sites) %>% 
+  mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
+  .[['swarm_call']]
+
