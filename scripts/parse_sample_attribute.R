@@ -84,3 +84,12 @@ keepers <- c('RPE','Retina','Cornea',' Adipose Tissue ',' Adrenal Gland ',' Bloo
 
 core_tight <- core_info %>% filter(Tissue %in% keepers)
 #save(core_tight, file='interactive_page/metaData.Rdata')
+
+#encode in now
+# https://www.encodeproject.org/report/?type=Experiment&assay_title=ChIP-seq&assay_title=RNA-seq&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&replicates.library.biosample.biosample_type=primary+cell&replicates.library.biosample.biosample_type=immortalized+cell+line&replicates.library.biosample.biosample_type=in+vitro+differentiated+cells&replicates.library.biosample.biosample_type=stem+cell&replicates.library.biosample.biosample_type=induced+pluripotent+stem+cell+line&files.file_type=fastq&files.run_type=paired-ended&field=%40id&field=accession&field=assay_term_name&field=assay_title&field=target.label&field=target.gene_name&field=biosample_summary&field=biosample_term_name&field=description&field=lab.title&field=award.project&field=status&field=replicates.biological_replicate_number&field=replicates.technical_replicate_number&field=replicates.antibody.accession&field=replicates.library.biosample.organism.scientific_name&field=replicates.library.biosample.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.treatments.treatment_term_name&field=replicates.library.biosample.treatments.treatment_term_id&field=replicates.library.biosample.treatments.concentration&field=replicates.library.biosample.treatments.concentration_units&field=replicates.library.biosample.treatments.duration&field=replicates.library.biosample.treatments.duration_units&field=replicates.library.biosample.synchronization&field=dbxrefs
+encode_metaData <- fread('~/git/unified_gene_expression/data/encode_pairedEnd_RNA-seq_cellLines.tsv')
+to_join <- encode_metaData %>% 
+  mutate(study_accession='ENCODE',study_title='ENCODE',study_abstract='',sample_accession=Accession, run_accession='',sample_attribute=Description, Tissue='ENCODE Cell Line', Sub_Tissue=Biosample, Origin='Cell Line') %>% 
+  select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Sub_Tissue, Origin)
+
+core_tight <- rbind(core_tight,to_join)

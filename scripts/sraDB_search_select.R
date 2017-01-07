@@ -128,7 +128,6 @@ selected_sites <-
 
 # randomly select 5 male and 5 female from each
 set.seed(138835)
-skip_sites <- c(' Breast - Mammary Tissue ', ' Cervix - Ectocervix ', ' Cervix - Endocervix ', ' Fallopian Tube ', ' Ovary ', ' Prostate ', ' Testis ', ' Uterus ', ' Vagina ')
 swarm_call <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
@@ -151,7 +150,8 @@ subset_samples <-
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
   group_by(Site, Gender) %>% sample_n(5) %>% .[['sample_accession']]
 
-full_call <- 
+skip_sites <- c(' Breast - Mammary Tissue ', ' Cervix - Ectocervix ', ' Cervix - Endocervix ', ' Fallopian Tube ', ' Ovary ', ' Prostate ', ' Testis ', ' Uterus ', ' Vagina ')
+remaining_calls <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
@@ -161,4 +161,5 @@ full_call <-
   filter(!Site %in% skip_sites) %>% 
   mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
   .[['swarm_call']]
-
+remaining_calls <- c('#!/bin/bash', 'module load sratoolkit',remaining_calls)
+write.table(remaining_calls, file='~/git/unified_gene_expression/scripts/remaining_gtex_calls.sh',row.names=F,col.names = F,quote = F)
