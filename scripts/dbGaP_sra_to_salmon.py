@@ -40,11 +40,11 @@ except:
 
 # salmon quantification time
 if library == 'paired':
-	salmon_call = 'sbatch --time=8:00:00 --cpus-per-task 16 ~/git/unified_gene_expression/scripts/salmon_stream.sh ' + \
+	salmon_call = 'sbatch --time=12:00:00 --cpus-per-task 16 ~/git/unified_gene_expression/scripts/salmon_stream.sh ' + \
 				  sra_path + '/' + run_accession + '.sra paired ' + salmon_main_dir + '/' + sample_accession + ' delete'
 	subprocess.check_call(salmon_call, shell=True)
 if library == 'single': 
-	salmon_call = 'sbatch --time=8:00:00 --cpus-per-task 16 ~/git/unified_gene_expression/scripts/salmon_stream.sh ' + \
+	salmon_call = 'sbatch --time=12:00:00 --cpus-per-task 16 ~/git/unified_gene_expression/scripts/salmon_stream.sh ' + \
 				  sra_path + '/' + run_accession + '.sra single ' +  salmon_main_dir + '/' + sample_accession + ' delete'
 	subprocess.check_call(salmon_call, shell=True)
 
