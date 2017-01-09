@@ -149,7 +149,7 @@ subset_samples <-
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
   group_by(Site, Gender) %>% sample_n(5) %>% .[['sample_accession']]
-
+set.seed(138835)
 more_calls <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
@@ -162,4 +162,41 @@ more_calls <-
   mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
   .[['swarm_call']]
 more_calls <- c('#!/bin/bash', 'module load sratoolkit',more_calls)
-write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+#write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+
+# fill in a handful of missings (failed SRA grabs or whatever)
+#                               Sub_Tissue      Sex count
+# 1:                        Adrenal Gland     male      9
+# 2:                     Brain - Amygdala   female      9
+# 3:        Brain - Cerebellar Hemisphere   female      8
+# 4:  Cells - EBV-transformed lymphocytes     male      9
+# 5:             Heart - Atrial Appendage   female      9
+# 6:                                Liver   female      9
+# 7:  Skin - Not Sun Exposed (Suprapubic)     male      9
+# 8:                              Stomach   female      9
+all_calls <- c(swarm_call, more_calls)
+attempted_samples <- all_calls %>% data.frame() %>% separate('.',c('call','sample_accession','run_accession','library'), sep=' ') %>% select(sample_accession)
+single_sample_grabber <- function(tissue, gender){ 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(!sample_accession %in% attempted_samples) %>% 
+  filter(Site == tissue, Gender == gender) %>% sample_n(1) %>% .[['sample_accession']]
+}
+set.seed(138835)
+filler_samples <- c(single_sample_grabber(' Adrenal Gland ', ' male ' ), 
+                    single_sample_grabber(' Brain - Amygdala ', ' female ' ),
+                    single_sample_grabber(' Brain - Cerebellar Hemisphere ', ' female ' ),
+                    single_sample_grabber(' Brain - Cerebellar Hemisphere ', ' female ' ),
+                    single_sample_grabber(' Cells - EBV-transformed lymphocytes ', ' male ' ),
+                    single_sample_grabber(' Heart - Atrial Appendage ', ' female ' ),
+                    single_sample_grabber(' Liver ', ' female ' ),
+                    single_sample_grabber(' Skin - Not Sun Exposed (Suprapubic) ', ' male ' ),
+                    single_sample_grabber(' Stomach ', ' female ' ))
+filler_call <- gtex %>%
+  filter(sample_accession %in% filler_samples) %>% 
+  mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
+  .[['swarm_call']]
+#more_calls <- c(more_calls, filler_call)
+#write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
