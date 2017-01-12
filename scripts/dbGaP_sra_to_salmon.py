@@ -23,7 +23,7 @@ library = args.library
 # let's keep sra and fastq files in /scratch
 sra_path = '/data/mcgaugheyd/dbGaP/11588/sra'
 # create folder (don't care if it already exists) for counts
-salmon_main_dir = '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts__bootstrap50_txUsed'
+salmon_main_dir = '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed'
 mkdir_salmon_call = 'mkdir ' + salmon_main_dir + '/' + sample_accession
 subprocess.call(mkdir_salmon_call, shell=True)
 # create main folder in /scratch
