@@ -123,7 +123,7 @@ selected_sites <-
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
-  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>=9) %>% 
   group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% .[['Site']]
 
 # randomly select 5 male and 5 female from each
@@ -200,3 +200,60 @@ filler_call <- gtex %>%
   .[['swarm_call']]
 #more_calls <- c(more_calls, filler_call)
 #write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+
+# had to hand check a bunch. Anyways, now need to pare down the extras:
+keepers <- gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(Site %in% selected_sites) %>% 
+  filter(!Site == ' Kidney - Cortex ' && !Gender == ' female' ) %>% 
+  filter(spots>1000000) %>% 
+  group_by(Site, Gender) %>% 
+  sample_n(10)
+# grab all female kidney (only 8)
+keepers_kidney <- gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(spots>1000000) %>% 
+  filter(Site == ' Kidney - Cortex ', Gender == ' female ')
+keepers <- bind_rows(keepers, keepers_kidney)
+
+# samples with low read counts (truncated?):
+toss <- c('SRS1017208','SRS1017205','SRS1017207','SRS1017251','SRS1017217','SRS1017201','SRS1017166','SRS1017226')
+gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(Site %in% toss)
+# oh, they are low coverage for ASE. Should not use these. 
+# replace these 
+single_sample_grabber_2 <- function(tissue, gender){ 
+  gtex %>% 
+    mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+    mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+    mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+    filter(spots > 10000000) %>% 
+    filter(!sample_accession %in% attempted_samples) %>% 
+    filter(Site == tissue, Gender == gender) %>% sample_n(1) %>% .[['sample_accession']]
+}
+filler_samples_2 <- c(single_sample_grabber_2(' Brain - Cerebellum ', ' female ' ), 
+                    single_sample_grabber_2(' Esophagus - Mucosa ', ' male ' ),
+                    single_sample_grabber_2(' Liver ', ' female ' ),
+                    single_sample_grabber_2(' Liver ', ' female ' ),
+                    single_sample_grabber_2(' Pancreas ', ' male ' ),
+                    single_sample_grabber_2(' Spleen ', ' female ' ),
+                    single_sample_grabber_2(' Stomach ', ' female ' ))
+
+keepers <- keepers %>% filter(spots > 10000000)
+temp <- gtex %>% 
+  filter(sample_accession %in% filler_samples_2) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|'))
+keepers <- bind_rows(keepers,temp)
+save(keepers,file='data/gtex_keepers.Rdata')
