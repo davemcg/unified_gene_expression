@@ -3,7 +3,6 @@ library(SRAdb)
 library(tidyverse)
 library(stringr)
 # getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
-# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-04.sqlite.gz')
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
@@ -59,7 +58,7 @@ human_tx_studies %>% filter(study_accession %in% select_studies) %>% select(stud
 # 56,57,58,61,63,64,65,66,67
 eye_rnaseq_experiments <- human_tx_studies %>% filter(study_accession %in% select_studies) %>% slice(-c(56,57,58,61,63,64,65,66,67))
 
-# check which have functioning ENA fastq links
+# check which have functioning fastq links
 runs<- eye_rnaseq_experiments$run_accession
 fastq_status <- getFASTQinfo(in_acc = runs, sra_con,srcType='ftp')
 missing_studies <- fastq_status %>% select(study, ftp) %>% filter(is.na(ftp)) %>% select(study) %>% distinct() %>% .[['study']]
@@ -74,11 +73,9 @@ missing_studies
 # find samples with multiple runs (will need to aggregate the fastqs when making the salmon call)
 eye_rnaseq_experiments %>% select(sample_accession) %>% group_by(sample_accession) %>% arrange(sample_accession) %>% filter(n()>1)
 
-hand_checked <- human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
-save(hand_checked, file='data/eye_studies_hand_checked_2016-10-12.Rdata')
+eye_studies_considered <- human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
+save(eye_studies_considered, file='data/eye_studies_considered_2016-10-12.Rdata')
 save(eye_rnaseq_experiments, file='data/eye_rnaSeq_experiments_sraMetadata.Rdata')
-
-
 
 fastq_status %>% filter(!study %in% missing_studies, !grepl('_2.fastq.gz',ftp)) %>% group_by(sample) %>% summarise(ftp=paste(ftp,collapse=',')) %>% data.frame()
 ###
@@ -123,7 +120,7 @@ selected_sites <-
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
-  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>10) %>% 
+  group_by(Site, Gender) %>% summarise(Count=n()) %>% filter(Count>=9) %>% 
   group_by(Site) %>% summarise(Count=n()) %>% filter(Count>1) %>% .[['Site']]
 
 # randomly select 5 male and 5 female from each
@@ -149,7 +146,7 @@ subset_samples <-
   mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
   mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
   group_by(Site, Gender) %>% sample_n(5) %>% .[['sample_accession']]
-
+set.seed(138835)
 more_calls <- 
   gtex %>% 
   mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
@@ -162,4 +159,98 @@ more_calls <-
   mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
   .[['swarm_call']]
 more_calls <- c('#!/bin/bash', 'module load sratoolkit',more_calls)
-write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+#write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+
+# fill in a handful of missings (failed SRA grabs or whatever)
+#                               Sub_Tissue      Sex count
+# 1:                        Adrenal Gland     male      9
+# 2:                     Brain - Amygdala   female      9
+# 3:        Brain - Cerebellar Hemisphere   female      8
+# 4:  Cells - EBV-transformed lymphocytes     male      9
+# 5:             Heart - Atrial Appendage   female      9
+# 6:                                Liver   female      9
+# 7:  Skin - Not Sun Exposed (Suprapubic)     male      9
+# 8:                              Stomach   female      9
+all_calls <- c(swarm_call, more_calls)
+attempted_samples <- all_calls %>% data.frame() %>% separate('.',c('call','sample_accession','run_accession','library'), sep=' ') %>% select(sample_accession)
+single_sample_grabber <- function(tissue, gender){ 
+  gtex %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(!sample_accession %in% attempted_samples) %>% 
+  filter(Site == tissue, Gender == gender) %>% sample_n(1) %>% .[['sample_accession']]
+}
+set.seed(138835)
+filler_samples <- c(single_sample_grabber(' Adrenal Gland ', ' male ' ), 
+                    single_sample_grabber(' Brain - Amygdala ', ' female ' ),
+                    single_sample_grabber(' Brain - Cerebellar Hemisphere ', ' female ' ),
+                    single_sample_grabber(' Brain - Cerebellar Hemisphere ', ' female ' ),
+                    single_sample_grabber(' Cells - EBV-transformed lymphocytes ', ' male ' ),
+                    single_sample_grabber(' Heart - Atrial Appendage ', ' female ' ),
+                    single_sample_grabber(' Liver ', ' female ' ),
+                    single_sample_grabber(' Skin - Not Sun Exposed (Suprapubic) ', ' male ' ),
+                    single_sample_grabber(' Stomach ', ' female ' ))
+filler_call <- gtex %>%
+  filter(sample_accession %in% filler_samples) %>% 
+  mutate(swarm_call=paste('~/git/unified_gene_expression/scripts/dbGaP_sra_to_salmon.py',sample_accession, run_accession, 'paired',sep=' ')) %>% 
+  .[['swarm_call']]
+#more_calls <- c(more_calls, filler_call)
+#write.table(more_calls, file='~/git/unified_gene_expression/scripts/more_gtex_calls.sh',row.names=F,col.names = F,quote = F)
+
+# had to hand check a bunch. Anyways, now need to pare down the extras:
+keepers <- gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(Site %in% selected_sites) %>% 
+  filter(!Site == ' Kidney - Cortex ' && !Gender == ' female' ) %>% 
+  filter(spots>1000000) %>% 
+  group_by(Site, Gender) %>% 
+  sample_n(10)
+# grab all female kidney (only 8)
+keepers_kidney <- gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(spots>1000000) %>% 
+  filter(Site == ' Kidney - Cortex ', Gender == ' female ')
+keepers <- bind_rows(keepers, keepers_kidney)
+
+# samples with low read counts (truncated?):
+toss <- c('SRS1017208','SRS1017205','SRS1017207','SRS1017251','SRS1017217','SRS1017201','SRS1017166','SRS1017226')
+gtex %>% 
+  filter(sample_accession %in% processed) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+  filter(Site %in% toss)
+# oh, they are low coverage for ASE. Should not use these. 
+# replace these 
+single_sample_grabber_2 <- function(tissue, gender){ 
+  gtex %>% 
+    mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+    mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+    mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|')) %>% 
+    filter(spots > 10000000) %>% 
+    filter(!sample_accession %in% attempted_samples) %>% 
+    filter(Site == tissue, Gender == gender) %>% sample_n(1) %>% .[['sample_accession']]
+}
+filler_samples_2 <- c(single_sample_grabber_2(' Brain - Cerebellum ', ' female ' ), 
+                    single_sample_grabber_2(' Esophagus - Mucosa ', ' male ' ),
+                    single_sample_grabber_2(' Liver ', ' female ' ),
+                    single_sample_grabber_2(' Liver ', ' female ' ),
+                    single_sample_grabber_2(' Pancreas ', ' male ' ),
+                    single_sample_grabber_2(' Spleen ', ' female ' ),
+                    single_sample_grabber_2(' Stomach ', ' female ' ))
+
+keepers <- keepers %>% filter(spots > 10000000)
+temp <- gtex %>% 
+  filter(sample_accession %in% filler_samples_2) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'histological type:','\\|\\|')) %>% 
+  mutate(Site=grab_attribute(sample_attribute,'body site:','\\|\\|')) %>% 
+  mutate(Gender=grab_attribute(sample_attribute,'sex:','\\|\\|'))
+keepers <- bind_rows(keepers,temp)
+save(keepers,file='data/gtex_keepers.Rdata')

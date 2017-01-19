@@ -45,11 +45,12 @@ eye_rnaseq_experiments_extra <-
                                         Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
                                         Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
                                         Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
-                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
                             mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Tissue)) %>% 
                             mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Tissue)) %>%
-                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Tissue)) %>%
-                            mutate(Tissue=ifelse(grepl(x= sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Tissue)) %>%
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
+                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'noggin', ignore.case=T),'Lens', Tissue)) %>% 
                             mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
                             mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Cell_Line','Tissue')) %>% 
                             select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
@@ -68,6 +69,8 @@ e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.org
 
 core_eye_info <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
 core_eye_info <- core_eye_info %>% mutate(Sub_Tissue=ifelse(Origin=='Tissue',Tissue,paste0('fetal',Tissue)))
+
+##################################
 # gtex
 load('~/git/unified_gene_expression/data/gtex_sraMetadata.Rdata')
 core_info <- 
@@ -85,6 +88,8 @@ keepers <- c('RPE','Retina','Cornea',' Adipose Tissue ',' Adrenal Gland ',' Bloo
 core_tight <- core_info %>% filter(Tissue %in% keepers)
 #save(core_tight, file='interactive_page/metaData.Rdata')
 
+
+#########################################
 #encode in now
 # https://www.encodeproject.org/report/?type=Experiment&assay_title=ChIP-seq&assay_title=RNA-seq&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&replicates.library.biosample.biosample_type=primary+cell&replicates.library.biosample.biosample_type=immortalized+cell+line&replicates.library.biosample.biosample_type=in+vitro+differentiated+cells&replicates.library.biosample.biosample_type=stem+cell&replicates.library.biosample.biosample_type=induced+pluripotent+stem+cell+line&files.file_type=fastq&files.run_type=paired-ended&field=%40id&field=accession&field=assay_term_name&field=assay_title&field=target.label&field=target.gene_name&field=biosample_summary&field=biosample_term_name&field=description&field=lab.title&field=award.project&field=status&field=replicates.biological_replicate_number&field=replicates.technical_replicate_number&field=replicates.antibody.accession&field=replicates.library.biosample.organism.scientific_name&field=replicates.library.biosample.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.treatments.treatment_term_name&field=replicates.library.biosample.treatments.treatment_term_id&field=replicates.library.biosample.treatments.concentration&field=replicates.library.biosample.treatments.concentration_units&field=replicates.library.biosample.treatments.duration&field=replicates.library.biosample.treatments.duration_units&field=replicates.library.biosample.synchronization&field=dbxrefs
 encode_metaData <- fread('~/git/unified_gene_expression/data/encode_pairedEnd_RNA-seq_cellLines.tsv')
