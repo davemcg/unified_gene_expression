@@ -58,7 +58,7 @@ human_tx_studies %>% filter(study_accession %in% select_studies) %>% select(stud
 # 56,57,58,61,63,64,65,66,67
 eye_rnaseq_experiments <- human_tx_studies %>% filter(study_accession %in% select_studies) %>% slice(-c(56,57,58,61,63,64,65,66,67))
 
-# check which have functioning ENA fastq links
+# check which have functioning fastq links
 runs<- eye_rnaseq_experiments$run_accession
 fastq_status <- getFASTQinfo(in_acc = runs, sra_con,srcType='ftp')
 missing_studies <- fastq_status %>% select(study, ftp) %>% filter(is.na(ftp)) %>% select(study) %>% distinct() %>% .[['study']]
