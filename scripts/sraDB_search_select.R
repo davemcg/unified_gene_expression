@@ -91,6 +91,17 @@ listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sa
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
 # above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
 
+
+############
+# 2017-01-13
+# adding new studies
+# downloaded new sra sqlite database
+# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-13.sqlite.gz')
+# ran human_transcriptome_sra_info function (lines 35-45) on new database
+# load eye_studies_hand_checked_2016-10-12.Rdata and compare against new database:
+# two eye studies: SRP091605 and SRP080002
+
+
 ##############################
 # GTEx
 ##############################
