@@ -3,7 +3,6 @@ library(SRAdb)
 library(tidyverse)
 library(stringr)
 # getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb.sqlite.gz') # do periodically. 1.6gb download on 2016-10-12
-# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-04.sqlite.gz')
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 # list all tables
@@ -74,11 +73,9 @@ missing_studies
 # find samples with multiple runs (will need to aggregate the fastqs when making the salmon call)
 eye_rnaseq_experiments %>% select(sample_accession) %>% group_by(sample_accession) %>% arrange(sample_accession) %>% filter(n()>1)
 
-hand_checked <- human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
-save(hand_checked, file='data/eye_studies_hand_checked_2016-10-12.Rdata')
+eye_studies_considered <- human_tx_studies %>% select(study_accession, study_title, study_abstract) %>% distinct()
+save(eye_studies_considered, file='data/eye_studies_considered_2016-10-12.Rdata')
 save(eye_rnaseq_experiments, file='data/eye_rnaSeq_experiments_sraMetadata.Rdata')
-
-
 
 fastq_status %>% filter(!study %in% missing_studies, !grepl('_2.fastq.gz',ftp)) %>% group_by(sample) %>% summarise(ftp=paste(ftp,collapse=',')) %>% data.frame()
 ###
@@ -90,17 +87,6 @@ listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(wg
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% select(sample) %>% distinct() %>% mutate(mkdir=paste0('mkdir ',sample)) %>% select(mkdir)
 listSRAfile(in_acc = runs, sra_con) %>% filter(study!='SRP080886') %>% mutate(mkdir=paste0('mv ', run, '.sra ',sample)) %>% select(mkdir)
 # above three commands copied to ~/git/unified_gene_expression/scripts/download_eye_sra_files.sh
-
-
-############
-# 2017-01-13
-# adding new studies
-# downloaded new sra sqlite database
-# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-13.sqlite.gz')
-# ran human_transcriptome_sra_info function (lines 35-45) on new database
-# load eye_studies_hand_checked_2016-10-12.Rdata and compare against new database:
-# two eye studies: SRP091605 and SRP080002
-
 
 ##############################
 # GTEx
