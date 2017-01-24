@@ -25,7 +25,7 @@ shinyServer(function(input, output) {
   output$boxPlot <- renderPlot({
     gene <- input$Gene
     tissue <- input$Tissue
-    col_num <- input$num
+    col_num <- min(input$num, length(input$Gene))
     plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
       gather(sample_accession, value, -Gene.Name) %>% 
       left_join(.,core_tight)
@@ -35,7 +35,7 @@ shinyServer(function(input, output) {
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
-  }, height=function(){(500*length(input$Gene))/(input$num)})
+  }, height=function(){(500*length(input$Gene))/(col_num)})
   
   ############
   # fold change
@@ -43,7 +43,7 @@ shinyServer(function(input, output) {
   output$FC <- renderPlot({
     gene <- input$Gene
     tissue <- input$Tissue
-    col_num <- input$num
+    col_num <- min(input$num, length(input$Gene))
     bench <- input$Bench
     plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
       gather(sample_accession, value, -Gene.Name) %>% 
@@ -59,7 +59,7 @@ shinyServer(function(input, output) {
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("log2 Fold Change of Gene Expression") 
     p
-  }, height=function(){(500*length(input$Gene))/(input$num)})
+  }, height=function(){(500*length(input$Gene))/(col_num)})
   
   #########
   # eye-only boxplot
