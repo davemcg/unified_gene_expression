@@ -97,7 +97,9 @@ shinyServer(function(input, output, session) {
       # multiple test correction
       mutate(`t test p` = signif(min(1,p.value * length(unique(plot_data$Sub_Tissue)))),3) %>%
       select(Gene.Name, Sub_Tissue, `t test p`)
-    stat_join <- left_join(base_stats, pvals) %>% DT::datatable() %>% DT::formatRound(c('log2DeltaFC','mean'), digits=2)
+    stat_join <- left_join(base_stats, pvals) %>% 
+      DT::datatable() %>% 
+      DT::formatRound(c('log2DeltaFC','mean'), digits=2)
     stat_join})
   
   #########

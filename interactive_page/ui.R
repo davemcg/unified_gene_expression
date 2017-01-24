@@ -37,7 +37,7 @@ shinyUI(
             numericInput('num', label = 'Number of columns:', value = 2, min = 1)
           ),
         
-        column(5,
+        column(6,
             conditionalPanel(condition = "input.plot_type == 'Box Plot'",
               h3('Boxplot of pan-human gene expression', align='left'),
               plotOutput('boxPlot')
@@ -49,7 +49,9 @@ shinyUI(
               plotOutput('FC')
             )
         ),
-        column(5, DT::dataTableOutput('basicStats')
+        column(4,
+          conditionalPanel(condition = "input.plot_type == 'Fold Change'",
+        div(DT::dataTableOutput('basicStats'),style='font-size:75%'))
         )
       )
     )
