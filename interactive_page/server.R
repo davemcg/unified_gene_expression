@@ -44,6 +44,7 @@ shinyServer(function(input, output, session) {
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue)) + 
       geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      ggtitle('Box Plot of Pan-Human Gene Expression') +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
   }, height=function(){(500*length(input$Gene))/min(input$num,length(input$Gene))})
@@ -68,6 +69,7 @@ shinyServer(function(input, output, session) {
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2FC,fill=Sub_Tissue)) + 
       geom_bar(stat = 'identity') + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      ggtitle('Fold Change (log2) of pan-human gene expression') +
       ylab("log2 Fold Change of Gene Expression") 
     p
   }, height=function(){(500*length(input$Gene))/min(input$num,length(input$Gene))})

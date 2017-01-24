@@ -39,11 +39,9 @@ shinyUI(
         
         column(6,
             conditionalPanel(condition = "input.plot_type == 'Box Plot'",
-              h3('Box Plot of Pan-Human Gene Expression', align='left'),
               plotOutput('boxPlot')
             ),
             conditionalPanel(condition = "input.plot_type == 'Fold Change'",
-              h3('Fold Change (log2) of pan-human gene expression', align='left'),
               selectInput('Bench','Select Reference Tissue(s):', 
                           unique(sort(tissue_info$Sub_Tissue)),multiple = TRUE),
               plotOutput('FC')
