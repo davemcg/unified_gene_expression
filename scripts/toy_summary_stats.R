@@ -1,6 +1,25 @@
 library(broom)
 library(tidyverse)
 
+gene <- c('ABCA4')
+tissue<- c(" Whole Blood ",
+" Pancreas ",
+" Cells - EBV-transformed lymphocytes ",
+" Cells - Transformed fibroblasts ",
+" Liver ",
+" Lung ",
+"Cornea",
+"fetalRetina",
+"fetalRPE",
+"RPE",
+"Retina")
+col_num <- 1
+plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>%
+gather(sample_accession, value, -Gene.Name) %>%
+left_join(.,core_tight)
+plot_data <- plot_data %>% filter(Sub_Tissue %in% tissue)
+
+
 bench <- c('RPE','Retina')
 # calculates log2 Fold Change against a user-defined 'bench' (reference)
 plot_data %>% 
@@ -12,6 +31,8 @@ plot_data %>%
 tissue_subset <- plot_data %>% filter(Sub_Tissue %in% bench)
 plot_data %>% 
   group_by(Sub_Tissue) %>%
-  do(tidy(t.test((.$value)), (subset(plot_data,Sub_Tissue == 'RPE')$value)))
+  do(tidy(t.test((.$value), tissue_subset$value))) %>% data.frame()
+
+    #do(tidy(t.test((.$value)), (subset(plot_data,Sub_Tissue == 'RPE')$value))) %>% data.frame()
 
 pairwise.t.test(plot_data$value,plot_data$Sub_Tissue,p.adjust.method = 'none')
