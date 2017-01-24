@@ -13,6 +13,7 @@ source('~/git/scripts/theme_Publication.R')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed.Rdata')
 load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity.Rdata')
+load('~/git/unified_gene_expression/data/mean_rank_decile.Rdata')
 lengthScaledTPM_qsmooth_highExp_remove_lowGenes <- data.frame(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
 lengthScaledTPM_qsmooth_highExp_remove_lowGenes$Gene.Name <- row.names(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
 shiny_data <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes
@@ -71,8 +72,23 @@ shinyServer(function(input, output, session) {
     p
   }, height=function(){(500*length(input$Gene))/min(input$num,length(input$Gene))})
   
+  ##########
+  # boxplot stats
+  ##########
+  output$rankStats <- DT::renderDataTable(({
+    gene <- input$Gene
+    tissue <- input$Tissue
+    mean_rank_decile %>% 
+      filter(Gene.Name %in% gene, Sub_Tissue %in% tissue) %>% 
+      mutate(`Gene Name` = Gene.Name, Tissue = `Sub_Tissue`) %>% 
+      ungroup() %>% 
+      select(`Gene Name`, Tissue, Rank, Decile) %>% 
+      arrange(`Gene Name`, Tissue) %>% 
+      DT::datatable(options = list(pageLength = 20)) 
+  }))
+  
   ########
-  # table stats
+  # FC table stats
   ########
   output$basicStats <- DT::renderDataTable({
     gene <- input$Gene
@@ -98,8 +114,12 @@ shinyServer(function(input, output, session) {
       mutate(`t test p` = signif(min(1,p.value * length(unique(plot_data$Sub_Tissue)))),3) %>%
       select(Gene.Name, Sub_Tissue, `t test p`)
     stat_join <- left_join(base_stats, pvals) %>% 
-      DT::datatable() %>% 
-      DT::formatRound(c('log2DeltaFC','mean'), digits=2)
+      mutate(`Gene Name` = Gene.Name, Tissue = `Sub_Tissue`, `log2 Delta FC` = log2DeltaFC, `Mean Expression` = mean) %>% 
+      ungroup() %>% 
+      select(`Gene Name`, Tissue, `log2 Delta FC`,`Mean Expression`, `t test p`) %>% 
+      arrange(`Gene Name`, Tissue) %>% 
+      DT::datatable(options = list(pageLength = 20))  %>% 
+      DT::formatRound(c('log2 Delta FC','Mean Expression'), digits=2)
     stat_join})
   
   #########
