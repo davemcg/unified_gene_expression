@@ -9,8 +9,9 @@ plot_data %>%
   summarise(log2FC=mean(log2(value+1)) - mean(BenchValue))
 
 # does t.test against a user-defined reference
+tissue_subset <- plot_data %>% filter(Sub_Tissue %in% bench)
 plot_data %>% 
   group_by(Sub_Tissue) %>%
-  do(tidy(t.test(Sub_Tissue ~ subset(plot_data, Sub_Tissue %in% bench)$value, data=.)))
+  do(tidy(t.test((.$value)), (subset(plot_data,Sub_Tissue == 'RPE')$value)))
 
 pairwise.t.test(plot_data$value,plot_data$Sub_Tissue,p.adjust.method = 'none')
