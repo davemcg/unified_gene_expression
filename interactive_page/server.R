@@ -18,8 +18,9 @@ core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accessio
 long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
 # responsive stuff!
 shinyServer(function(input, output) {
+  
   #########
-  #boxplot
+  # pan - tissue boxplot
   #########
   output$boxPlot <- renderPlot({
     gene <- input$Gene
@@ -36,8 +37,32 @@ shinyServer(function(input, output) {
     p
   }, height=function(){(500*length(input$Gene))/(input$num)})
   
+  ############
+  # fold change
+  ############
+  output$FC <- renderPlot({
+    gene <- input$Gene
+    tissue <- input$Tissue
+    col_num <- input$num
+    bench <- input$Bench
+    plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
+      gather(sample_accession, value, -Gene.Name) %>% 
+      left_join(.,core_tight)
+    plot_data <- plot_data %>% 
+      filter(Sub_Tissue %in% tissue) %>% 
+      group_by(Gene.Name) %>% 
+      mutate(Bench=ifelse(Sub_Tissue %in% bench, 1, 0), BenchValue=mean(log2(value[Bench==1]+1))) %>% 
+      group_by(Gene.Name, Sub_Tissue) %>% 
+      summarise(log2FC=mean(log2(value+1)) - mean(BenchValue))
+    p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2FC,fill=Sub_Tissue)) + 
+      geom_bar(stat = 'identity') + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      ylab("log2 Fold Change of Gene Expression") 
+    p
+  }, height=function(){(500*length(input$Gene))/(input$num)})
+  
   #########
-  # eye boxplot
+  # eye-only boxplot
   #########
   output$eyeBoxPlot <- renderPlotly({
     gene <- input$eyeGene
@@ -54,6 +79,8 @@ shinyServer(function(input, output) {
       theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,40,0,0)))
     ggplotly(eye_p, width = 800, height=600) %>% layout(margin=list(b=100))
   })
+
+  
   ##############
   # tsne
   ##############

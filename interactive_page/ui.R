@@ -9,38 +9,48 @@ load('~/git/unified_gene_expression/interactive_page/gene_names.Rdata')
 load('~/git/unified_gene_expression/interactive_page/tissue_info.RData')
 print('Data loaded')
 print(Sys.time())
+
 # Define UI for application that draws a histogram
 shinyUI(
   navbarPage('eyeIntegration',
-    tabPanel('Pan-Tissue BoxPlot',
+    tabPanel('Pan-Tissue Expression',
       fluidPage(
-        # Application title
-        #titlePanel("Gene Expression for Human Tissues and Cells"),
-
-        # Show a plot of the generated distribution
         fluidRow(
           column(2,
-            selectInput("Gene","Genes:", choices=unique(sort(gene_names$Gene.Name)), 
+            radioButtons('plot_type','Plot Type:',
+                         choices = c('Box Plot','Fold Change'),
+                         selected = 'Box Plot'),
+            selectInput('Gene','Genes:', choices=unique(sort(gene_names$Gene.Name)), 
               selected=c('ABCA4','TYRP1'),multiple=TRUE),
-            selectInput("Tissue","Tissues:", choices=unique(sort(tissue_info$Sub_Tissue)), 
-              selected=c(" Whole Blood ",
-                       " Pancreas ",
-                       " Cells - EBV-transformed lymphocytes ",
-                       " Cells - Transformed fibroblasts ",
-                       " Liver ",
-                       " Lung ",
-                       "Cornea",
-                       "fetalRetina",
-                       "fetalRPE",
-                       "RPE",
-                       "Retina"),multiple=TRUE),
-            numericInput("num", label = "Number of columns:", value = 2, min = 1)
+            selectInput('Tissue','Tissues:', choices=unique(sort(tissue_info$Sub_Tissue)), 
+              selected=c(' Whole Blood ',
+                       ' Pancreas ',
+                       ' Cells - EBV-transformed lymphocytes ',
+                       ' Cells - Transformed fibroblasts ',
+                       ' Liver ',
+                       ' Lung ',
+                       'Cornea',
+                       'fetalRetina',
+                       'fetalRPE',
+                       'RPE',
+                       'Retina'),multiple=TRUE),
+            numericInput('num', label = 'Number of columns:', value = 2, min = 1)
           ),
         
         column(10,
           mainPanel(
-            h3('Boxplot of pan-human gene expression', align="center"),
-            plotOutput("boxPlot")
+            conditionalPanel(condition = "input.plot_type == 'Box Plot'",
+              h3('Boxplot of pan-human gene expression', align='left'),
+              plotOutput('boxPlot')
+            ),
+            conditionalPanel(condition = "input.plot_type == 'Fold Change'",
+              h3('Fold Change (log2) of pan-human gene expression', align='left'),
+              selectInput('Bench','Reference Tissue(s):', 
+                          choices = tissue, 
+                          selected = tissue, 
+                          multiple = TRUE),
+              plotOutput('FC')
+            )
           )
         )
       )
@@ -50,14 +60,14 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(2,
-            selectInput("eyeGene","Genes:", choices=unique(sort(gene_names$Gene.Name)), 
+            selectInput('eyeGene','Genes:', choices=unique(sort(gene_names$Gene.Name)), 
             selected=c('ABCA4','RPE65','TYRP1'),multiple=TRUE),
-            numericInput("eyeNum", label = "Number of columns:", value = 3, min = 1)
+            numericInput('eyeNum', label = 'Number of columns:', value = 3, min = 1)
         ),
           column(10,
             mainPanel(
-              h3('Interactive scatter plot of eye-tissue gene expression', align="center"),
-              plotlyOutput("eyeBoxPlot")
+              h3('Interactive scatter plot of eye-tissue gene expression', align='center'),
+              plotlyOutput('eyeBoxPlot')
             )
           )
         
@@ -65,7 +75,7 @@ shinyUI(
   
     tabPanel('2D Tissue Clustering',
       fluidPage(
-        fluidRow(plotlyOutput("tsne",height = '800px')),
+        fluidRow(plotlyOutput('tsne',height = '800px')),
         fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
       )
     ),
@@ -74,15 +84,15 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(3,
-            selectInput("table_tissue",
-              "Tissue:",
+            selectInput('table_tissue',
+              'Tissue:',
               unique(as.character(tissue_info$Tissue)))),
           column(3,
-            selectInput("table_gene",
-              "Gene:",
+            selectInput('table_gene',
+              'Gene:',
               unique(as.character(gene_names$Gene.Name))))
       ), fluidRow(
-        dataTableOutput("table")
+        dataTableOutput('table')
     ))))
 )
 print('Data loaded')
