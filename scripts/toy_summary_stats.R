@@ -31,8 +31,6 @@ plot_data %>%
 tissue_subset <- plot_data %>% filter(Sub_Tissue %in% bench)
 plot_data %>% 
   group_by(Sub_Tissue) %>%
-  do(tidy(t.test((.$value), tissue_subset$value))) %>% data.frame()
+  do(tidy(t.test(.$value, tissue_subset$value)))
 
-    #do(tidy(t.test((.$value)), (subset(plot_data,Sub_Tissue == 'RPE')$value))) %>% data.frame()
-
-pairwise.t.test(plot_data$value,plot_data$Sub_Tissue,p.adjust.method = 'none')
+# calculates mean, standard deviation, variance                                                                                                                                                                 
