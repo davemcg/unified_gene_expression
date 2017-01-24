@@ -37,21 +37,19 @@ shinyUI(
             numericInput('num', label = 'Number of columns:', value = 2, min = 1)
           ),
         
-        column(10,
-          mainPanel(
+        column(5,
             conditionalPanel(condition = "input.plot_type == 'Box Plot'",
               h3('Boxplot of pan-human gene expression', align='left'),
               plotOutput('boxPlot')
             ),
             conditionalPanel(condition = "input.plot_type == 'Fold Change'",
               h3('Fold Change (log2) of pan-human gene expression', align='left'),
-              selectInput('Bench','Reference Tissue(s):', 
-                          choices = tissue, 
-                          selected = tissue, 
-                          multiple = TRUE),
+              selectInput('Bench','Select Reference Tissue(s):', 
+                          unique(sort(tissue_info$Sub_Tissue)),multiple = TRUE),
               plotOutput('FC')
             )
-          )
+        ),
+        column(5, DT::dataTableOutput('basicStats')
         )
       )
     )

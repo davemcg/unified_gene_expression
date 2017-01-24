@@ -7,6 +7,8 @@ library(plotly)
 library(shiny)
 library(ggplot2)
 library(tidyverse)
+library(broom)
+library(DT)
 source('~/git/scripts/theme_Publication.R')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed.Rdata')
 load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
@@ -17,7 +19,15 @@ shiny_data <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes
 core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
 long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
 # responsive stuff!
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
+  # tissues
+  observe({
+    selected_tissue <- input$Tissue
+    updateSelectInput(session, "Bench",
+      label='Select Reference Tissue(s): ',
+      choices = selected_tissue,
+      selected = selected_tissue)
+  })
   
   #########
   # pan - tissue boxplot
@@ -60,6 +70,35 @@ shinyServer(function(input, output) {
       ylab("log2 Fold Change of Gene Expression") 
     p
   }, height=function(){(500*length(input$Gene))/min(input$num,length(input$Gene))})
+  
+  ########
+  # table stats
+  ########
+  output$basicStats <- DT::renderDataTable({
+    gene <- input$Gene
+    tissue <- input$Tissue
+    bench <- input$Bench
+    plot_data <- shiny_data %>% filter(Gene.Name %in% gene) %>% 
+      gather(sample_accession, value, -Gene.Name) %>% 
+      left_join(.,core_tight)
+    base_stats <- plot_data %>% 
+      filter(Sub_Tissue %in% tissue) %>% 
+      group_by(Gene.Name) %>% 
+      mutate(Bench=ifelse(Sub_Tissue %in% bench, 1, 0), BenchValue=mean(log2(value[Bench==1]+1))) %>% 
+      group_by(Gene.Name, Sub_Tissue) %>% 
+      summarise(log2DeltaFC=mean(log2(value+1)) - mean(BenchValue), mean=mean(log2(value+1)))
+  
+    # does t.test against a user-defined reference
+    # corrects for number of tests
+    tissue_subset <- plot_data %>% filter(Sub_Tissue %in% bench)
+    pvals <- plot_data %>% 
+      group_by(Sub_Tissue, Gene.Name) %>%
+      do(tidy(t.test(.$value, tissue_subset$value))) %>%
+      # multiple test correction
+      mutate(`t test p` = signif(min(1,p.value * length(unique(plot_data$Sub_Tissue)))),3) %>%
+      select(Gene.Name, Sub_Tissue, `t test p`)
+    stat_join <- left_join(base_stats, pvals) %>% DT::datatable() %>% DT::formatRound(c('log2DeltaFC','mean'), digits=2)
+    stat_join})
   
   #########
   # eye-only boxplot
