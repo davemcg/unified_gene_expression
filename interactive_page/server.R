@@ -166,6 +166,7 @@ shinyServer(function(input, output, session) {
       shiny_data %>% filter(Gene.Name == input$table_gene) %>% 
         gather(sample_accession, value, -Gene.Name) %>% 
         left_join(.,core_tight) %>% filter(Tissue == input$table_tissue) %>% 
-        select_(input$table_columns) 
+        select(one_of(input$table_columns)) %>% 
+        DT::datatable()
   })
 })
