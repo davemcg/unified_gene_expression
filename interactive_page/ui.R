@@ -2,6 +2,7 @@
 # http://shiny.rstudio.com/gallery/telephones-by-region.html
 # http://davetang.org/muse/2014/01/03/using-shiny/
 
+
 library(shiny)
 library(ggplot2)
 library(plotly)
@@ -12,18 +13,19 @@ print(Sys.time())
 
 # Define UI for application that draws a histogram
 shinyUI(
-  navbarPage('eyeIntegration',
+  navbarPage('eyeIntegration', theme='bootstrap.css', 
     tabPanel('Pan-Tissue Expression',
       fluidPage(
         fluidRow(
           column(2,
-            radioButtons('plot_type','Visualization:',
+            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+            radioButtons('plot_type',strong('Visualization:'),
                          choices = c('Box Plot','Fold Change'),
                          selected = 'Box Plot'),
-            selectInput('Gene','Genes:', 
+            selectInput('Gene',strong('Genes:'), 
               choices=unique(sort(gene_names$Gene.Name)), 
               selected=c('ABCA4','TYRP1'),multiple=TRUE),
-            selectInput('Tissue','Tissues:', 
+            selectInput('Tissue',strong('Tissues:'), 
               choices=unique(sort(tissue_info$Sub_Tissue)), 
               selected=c(' Whole Blood ', ' Pancreas ',
                        ' Cells - EBV-transformed lymphocytes ',
@@ -31,7 +33,7 @@ shinyUI(
                        ' Liver ', ' Lung ', 'Cornea',
                        'fetalRetina', 'fetalRPE',
                        'RPE', 'Retina'),multiple=TRUE),
-            numericInput('num', 'Number of columns:', 
+            numericInput('num', strong('Number of columns:'), 
               value = 2, min = 1)
           ),
         
@@ -58,10 +60,11 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(2,
-            selectInput('eyeGene','Genes:', 
+            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+            selectInput('eyeGene',strong('Genes:'), 
               choices=unique(sort(gene_names$Gene.Name)), 
               selected=c('ABCA4','RPE65','TYRP1'),multiple=TRUE),
-            numericInput('eyeNum', 'Number of columns:', 
+            numericInput('eyeNum', strong('Number of columns:'), 
               value = 3, min = 1)
         ),
           column(10,
@@ -74,26 +77,29 @@ shinyUI(
       ))),
     tabPanel('2D Tissue Clustering',
       fluidPage(
-        fluidRow(plotlyOutput('tsne',height = '800px')),
+        fluidRow(column(10,
+          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+          plotlyOutput('tsne',height = '800px')),
         fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
-      )
+      ))
     ),
     tabPanel('Data Table',
       fluidPage(
         fluidRow(
-          column(2,
-            selectInput('table_tissue',
-              'Tissue:',
+          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'),
+          column(1,
+              selectInput('table_tissue',
+              strong('Tissue:'),
               choices = unique(as.character(tissue_info$Tissue)),
               selected = 'Retina')),
-          column(2,
+          column(1,
             selectInput('table_gene',
-              'Gene:',
+              strong('Gene:'),
               choices = unique(as.character(gene_names$Gene.Name)),
               selected = 'CFH')),
-          column(8,
+          column(6,
               checkboxGroupInput('table_columns',
-                'Columns: ', 
+                strong('Columns: '), 
                 inline = T,
                 choices = c('Gene.Name', 'sample_accession', 'value', 'study_accession', 'study_title', 'study_abstract', 'sample_attribute', 'Tissue', 'Sub_Tissue','Origin'),
                 selected = c('Gene.Name', 'sample_accession', 'value', 'study_title', 'sample_attribute', 'Tissue', 'Sub_Tissue','Origin'))
