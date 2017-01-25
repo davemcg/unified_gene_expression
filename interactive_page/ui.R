@@ -85,7 +85,7 @@ shinyUI(
     tabPanel('Data Table',
       fluidPage(
         fluidRow(
-          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left')), br(),
+          column(12,img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'))), br(),
         fluidRow(
           column(2,
               selectInput('table_tissue',
