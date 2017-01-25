@@ -95,7 +95,7 @@ shinyUI(
               checkboxGroupInput('table_columns',
                 'Columns: ', 
                 inline = T,
-                choices = c('Gene.Name', 'sample_accession', 'value', colnames(core_tight)),
+                choices = c('Gene.Name', 'sample_accession', 'value', 'study_accession', 'study_title', 'study_abstract', 'sample_attribute', 'Tissue', 'Sub_Tissue','Origin'),
                 selected = c('Gene.Name', 'sample_accession', 'value', 'study_title', 'sample_attribute', 'Tissue', 'Sub_Tissue','Origin'))
           )
         ), 
