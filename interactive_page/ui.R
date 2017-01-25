@@ -91,10 +91,10 @@ shinyUI(
               'Gene:',
               choices = unique(as.character(gene_names$Gene.Name)),
               selected = 'CFH')),
-          column(6,
-              selectInput('table_columns',
+          column(8,
+              checkboxGroupInput('table_columns',
                 'Columns: ', 
-                multiple = TRUE,
+                inline = T,
                 choices = c('Gene.Name', 'sample_accession', 'value', colnames(core_tight)),
                 selected = c('Gene.Name', 'sample_accession', 'value', 'study_title', 'sample_attribute', 'Tissue', 'Sub_Tissue','Origin'))
           )
