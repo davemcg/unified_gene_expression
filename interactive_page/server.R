@@ -141,6 +141,7 @@ shinyServer(function(input, output, session) {
       geom_jitter(size=1) + xlab('')  +  facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
+      ggtitle('Interactive scatter plot of eye-tissue gene expression') +
       theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,40,0,0)))
     ggplotly(eye_p, width = 800, height=600) %>% layout(margin=list(b=100))
   })

@@ -18,7 +18,7 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(2,
-            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),
             radioButtons('plot_type',strong('Visualization:'),
                          choices = c('Box Plot','Fold Change'),
                          selected = 'Box Plot'),
@@ -60,7 +60,7 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(2,
-            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+            img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),
             selectInput('eyeGene',strong('Genes:'), 
               choices=unique(sort(gene_names$Gene.Name)), 
               selected=c('ABCA4','RPE65','TYRP1'),multiple=TRUE),
@@ -69,7 +69,6 @@ shinyUI(
         ),
           column(10,
             mainPanel(
-              h3('Interactive scatter plot of eye-tissue gene expression', align='center'),
               plotlyOutput('eyeBoxPlot')
             )
           )
@@ -78,7 +77,7 @@ shinyUI(
     tabPanel('2D Tissue Clustering',
       fluidPage(
         fluidRow(column(10,
-          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),br(),
+          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),
           plotlyOutput('tsne',height = '800px')),
         fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
       ))
@@ -86,13 +85,14 @@ shinyUI(
     tabPanel('Data Table',
       fluidPage(
         fluidRow(
-          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'),
-          column(1,
+          img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left')), br(),
+        fluidRow(
+          column(2,
               selectInput('table_tissue',
               strong('Tissue:'),
               choices = unique(as.character(tissue_info$Tissue)),
               selected = 'Retina')),
-          column(1,
+          column(2,
             selectInput('table_gene',
               strong('Gene:'),
               choices = unique(as.character(gene_names$Gene.Name)),
