@@ -17,7 +17,7 @@ shinyUI(
       fluidPage(
         fluidRow(
           column(2,
-            radioButtons('plot_type','Plot Type:',
+            radioButtons('plot_type','Visualization:',
                          choices = c('Box Plot','Fold Change'),
                          selected = 'Box Plot'),
             selectInput('Gene','Genes:', 

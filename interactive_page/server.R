@@ -117,12 +117,13 @@ shinyServer(function(input, output, session) {
       mutate(`t test p` = signif(min(1,p.value * length(unique(plot_data$Sub_Tissue)))),3) %>%
       select(Gene.Name, Sub_Tissue, `t test p`)
     stat_join <- left_join(base_stats, pvals) %>% 
-      mutate(`Gene Name` = Gene.Name, Tissue = `Sub_Tissue`, `log2 Delta FC` = log2DeltaFC, `Mean Expression` = mean) %>% 
+      mutate(`Gene Name` = Gene.Name, Tissue = `Sub_Tissue`, `log2 Fold Change` = log2DeltaFC, `Fold Change` = 2^log2DeltaFC, `Mean Expression` = mean) %>% 
       ungroup() %>% 
-      select(`Gene Name`, Tissue, `log2 Delta FC`,`Mean Expression`, `t test p`) %>% 
+      select(`Gene Name`, Tissue, `log2 Fold Change`, `Fold Change`, `Mean Expression`, `t test p`) %>% 
       arrange(`Gene Name`, Tissue) %>% 
       DT::datatable(options = list(pageLength = 20))  %>% 
-      DT::formatRound(c('log2 Delta FC','Mean Expression'), digits=2)
+      DT::formatRound(c('log2 Fold Change','Mean Expression'), digits=2) %>% 
+      DT::formatRound('Fold Change', digits=6)
     stat_join})
   
   #########
