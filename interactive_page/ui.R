@@ -79,7 +79,8 @@ shinyUI(
         fluidRow(column(10,
           img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),
           plotlyOutput('tsne',height = '800px')),
-        fluidRow(numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50))
+        fluidRow(column(10,
+          numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50)))
       ))
     ),
     tabPanel('Data Table',
