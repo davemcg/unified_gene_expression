@@ -69,6 +69,7 @@ shinyServer(function(input, output, session) {
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2FC,fill=Sub_Tissue)) + 
       geom_bar(stat = 'identity') + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      geom_hline(aes(yintercept=0,colour='Red')) + 
       ggtitle('Fold Change (log2) of pan-human gene expression') +
       ylab("log2 Fold Change of Gene Expression") 
     p
@@ -167,6 +168,6 @@ shinyServer(function(input, output, session) {
         gather(sample_accession, value, -Gene.Name) %>% 
         left_join(.,core_tight) %>% filter(Tissue == input$table_tissue) %>% 
         select(one_of(input$table_columns)) %>% 
-        DT::datatable()
+        DT::datatable() %>% DT::formatRound(c('value'), digits=2)
   })
 })
