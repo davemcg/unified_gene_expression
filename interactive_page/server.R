@@ -162,10 +162,10 @@ shinyServer(function(input, output, session) {
   ##########
   # data table
   ##########
-  output$table = renderDataTable({
+  output$table = DT::renderDataTable({
       shiny_data %>% filter(Gene.Name == input$table_gene) %>% 
         gather(sample_accession, value, -Gene.Name) %>% 
-        left_join(.,core_tight) %>% filter(Tissue == input$table_tissue)
-    
+        left_join(.,core_tight) %>% filter(Tissue == input$table_tissue) %>% 
+        select_(input$table_columns) 
   })
 })
