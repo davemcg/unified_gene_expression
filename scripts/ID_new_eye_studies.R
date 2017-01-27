@@ -1,3 +1,4 @@
+library(RSQLite)
 # Checks for eye-related studies
 getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-19.sqlite.gz')
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb_2017-01-19.sqlite'
