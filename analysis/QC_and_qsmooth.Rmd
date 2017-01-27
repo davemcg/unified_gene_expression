@@ -10,23 +10,22 @@ library(formattable)
 library(tidyverse)
 source('~/git/scripts/theme_Publication.R')
 # https://github.com/stephaniehicks/qsmooth
-load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 ```
 Testing to see if running qsmooth (https://github.com/stephaniehicks/qsmooth, weighted quantile normalization) improves the clustering performance.
 
 ```{r,fig.width=4, fig.height=4.5}
 lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
-
+# remove the melanoma samples
+lengthScaledTPM <- lengthScaledTPM %>% select(-contains('ERS21412'))
 samples <- data.frame(colnames(lengthScaledTPM))
 colnames(samples) <- 'sample_accession'
-tissue_frame <- left_join(samples, core_info) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
+tissue_frame <- left_join(samples, core_tight) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
 # make sure they are lined up
 tissues <- left_join(samples, tissue_frame)
-# just keep the keeper set of tissues (no prostrate, etc)
-sub <- tissues %>% filter(Tissue %in% keepers)
-lengthScaledTPM_sub<-lengthScaledTPM[,sub$sample_accession]
-qs <- qsmooth(object = lengthScaledTPM_sub,groupFactor = as.factor(sub$Tissue))
+
+qs <- qsmooth(object = lengthScaledTPM,groupFactor = as.factor(tissues$Tissue))
 lengthScaledTPM_qsmooth <- qsmoothData(qs)
 
 set.seed(23235)
@@ -34,7 +33,7 @@ tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth)+1)),perplexity = 40,
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth)
 
-tsne_plot %>% left_join(.,core_info)  %>%
+tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
   geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0("t-sne. Perplexity = ", 40)) +
@@ -44,12 +43,12 @@ tsne_plot %>% left_join(.,core_info)  %>%
 No qsmooth
 ```{r,fig.width=4, fig.height=4.5}
 set.seed(23235)
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_sub)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
 
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$sample_accession <- colnames(lengthScaledTPM_sub)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM)
 
-tsne_plot %>% left_join(.,core_info)  %>%
+tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
   geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0("t-sne. Perplexity = ", 40)) +
@@ -58,7 +57,7 @@ tsne_plot %>% left_join(.,core_info)  %>%
 
 Expression profiles without qsmooth
 ```{r,fig.width=4, fig.height=5}
-gather_lST<-gather(lengthScaledTPM_sub,sample_accession) %>% left_join(.,core_tight)
+gather_lST<-gather(lengthScaledTPM,sample_accession) %>% left_join(.,core_tight)
 ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
 ```
 
@@ -70,39 +69,25 @@ gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% lef
 ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
 ```
 
-Let's look at just the Cornea. Funky. 
+Let's look at just the RPE Funky. 
 ```{r,fig.width=2, fig.height=1.5}
 core_tight2 <- core_tight
 core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
-gather_lST <- gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='Cornea')
+gather_lST <- gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='RPE')
 ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
 ```
-Let's find the weird ones. SRS390607 to SRS390610. Weird median. Plotting the uncorrected values...Huh, seems like there are lots of zeros....
-```{r,fig.width=2, fig.height=2.5}
-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% filter(Tissue=='Cornea') %>% group_by(sample_accession) %>% summarise(median(value)) %>% arrange(-`median(value)`) %>% head() %>% formattable()
 
-core_eye_info %>% filter(sample_accession=='SRS390607') %>% formattable()
-
-gather_lST<-gather(lengthScaledTPM_sub,sample_accession) %>% left_join(.,core_tight) %>% filter(sample_accession %in% c('SRS390607','SRS390608','SRS390609','SRS390610'))
-ggplot(gather_lST,aes(x=log2(value+1)))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
-
-```
-Let's look at the number level for one of those odd samples. Uh, yikes. Let's check the median for ALL of the samples to see if any others have this problem. I'm guessing more do. 
-```{r}
-summary(lengthScaledTPM_sub[,'SRS390607'])
-```
-Yeah, a few. A plateau at a median of 50.
+Let's look at the overall distribution (density plot) of gene counts. Looks like some samples have 0 to very low counts for most genes. qsmooth is then unable to properly correct them. 
 ```{r, fig.width=3, fig.height=2}
 apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% head(60) %>% data.frame() %>% formattable()
 
-apply(lengthScaledTPM,2,function(x) median(x)) %>% density() %>% plot()
-axis(side = 1, at=seq(0,500,10))
+apply(lengthScaledTPM,2,function(x) median(x)) %>% density() %>% plot() %>% axis(side = 1, at=seq(0,100,25))
 ```
 
-Let's redo the qsmooth'ed density plots above, but with the low (<10) colored. Bam, that's it. 
+Let's redo the qsmooth'ed density plots above, but with the low (<50) colored. Bam, that's it. 
 ```{r, fig.width=6, fig.heigth=7}
 median_TPM <- apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% formattable()
-lows <- names(median_TPM[median_TPM<10])
+lows <- names(median_TPM[median_TPM<50])
 
 core_tight2 <- core_tight
 core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
@@ -110,24 +95,11 @@ gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% lef
 ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=LowMedian))+geom_density(alpha=0.5)+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
 ```
 
-Let's up the median threshold to, say, 50. This is probably a reasonable place to set it. 
-```{r, fig.width=6, fig.heigth=7}
-median_TPM <- apply(lengthScaledTPM,2,function(x) median(x)) %>% sort() %>% formattable()
-lows <- names(median_TPM[median_TPM<60])
-
-core_tight2 <- core_tight
-core_tight2$sample_accession <- gsub(pattern='E-MTAB-',replacement = 'E.MTAB.',core_tight$sample_accession)
-gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth),sample_accession) %>% left_join(.,core_tight2) %>% mutate(LowMedian=ifelse(sample_accession %in% lows, 'LowMedian','OK'))
-ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=LowMedian))+geom_density(alpha=0.5)+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
-
-
-```
-
-Ugh, this tosses a LOT of my fetal RPE (44 originally). Eh, life. 
+Let's see how many and what samples I'm losing with a median cut-off of 50
 ```{r}
 gather_lST %>% filter(sample_accession %in% lows) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct() %>% group_by(Tissue, Sub_Tissue) %>% summarise(Count=n()) %>% formattable()
 ```
-Redo the tsne (qsmooth'ed) and tossing the above samples. Looks better. A couple of Retina ($) samples that have wandered away (X2=10,X1=-10). 
+Redo the tsne (qsmooth'ed) and tossing the above samples. Looks better. A couple of Retina samples that have wandered away (X2=10,X1=-10). 
 ```{r, fig.width=4, fig.heigth=4.5}
 set.seed(23235)
 lengthScaledTPM_qsmooth_highExp <- as.matrix(lengthScaledTPM_qsmooth[,!colnames(lengthScaledTPM_qsmooth) %in% lows])
@@ -135,18 +107,19 @@ tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp)+1)),perplexi
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp)
 
-tsne_plot %>% left_join(.,core_info)  %>%
+tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
   geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0("t-sne. Perplexity = ", 50)) +
   theme_Publication()
 ```
 
-Let's do a quick check on genes with overall low experession. Less than 1 count on average across all samples, for a gene. 
+Let's do a quick check on genes with overall low experession. Less than z counts on average across all samples, for a gene. 
 ```{r, fig.width=3, fig.heigth=2}
+z=200
 density(rowSums(log2(lengthScaledTPM+1))) %>% plot()
 table((rowSums(lengthScaledTPM)/ncol(lengthScaledTPM))<1)
-lowly_expressed_genes <- row.names(lengthScaledTPM[(rowSums(lengthScaledTPM)/ncol(lengthScaledTPM)<1),])
+lowly_expressed_genes <- row.names(lengthScaledTPM[(rowSums(lengthScaledTPM)/ncol(lengthScaledTPM) < z),])
 ```
 
 OK, let's also toss these and see how that changes the t-sne clustering. 
@@ -159,7 +132,7 @@ tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGen
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
 
-tsne_plot %>% left_join(.,core_info)  %>%
+tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
   geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0("t-sne. Perplexity = ", 50)) +
@@ -168,14 +141,12 @@ tsne_plot %>% left_join(.,core_info)  %>%
 
 OK, this is getting hard/impossible to see whether I'm doing any better. Need to get more analytical. Metric: cluster purity. K-means cluster (k number is number of sub-tissues or tissues?), check purity of each cluster.
 ```{r}
-load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
-lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
-sub <- tissues %>% filter(Tissue %in% keepers)
-lengthScaledTPM_sub<-lengthScaledTPM[,sub$sample_accession]
 set.seed(23235)
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_sub)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+# first get rid of ENCODE
+lengthScaledTPM_noENCODE <- lengthScaledTPM %>% select(-contains('ENCSR'))
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_noENCODE)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$sample_accession <- colnames(lengthScaledTPM_sub)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_noENCODE)
 
 tsne_go <- tsne_plot %>% left_join(.,core_info)
 # Determine number of clusters
@@ -191,6 +162,15 @@ fit <- kmeans(tsne_go[,c('X1','X2')], 24)
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% formattable()
 ```
 
+```{r}
+##############
+# checking out CountClust
+# https://www.bioconductor.org/packages/3.3/bioc/vignettes/CountClust/inst/doc/count-clust.pdf
+##############
+
+
+```
+
 Now go deeper and count number of Tissue types and purity (highest freq) for each cluster
 ```{r}
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% formattable() 
@@ -199,13 +179,14 @@ OK, now take the mean of Tissue_Count and highest_freq, for two metrics for each
 ```{r}
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
 ```
-Cool. Let's go the end (qsmooth, removal of low-median samples, removal of low expression genes) and see if these metrics get better. YES THEY DO. IT WORKS. OMG. (Sorry, usually stuff like this blows up in my face once I test it rigorously). 
+Cool. Let's go the end (qsmooth, removal of low-median samples, removal of low expression genes) and see if these metrics get better. YES THEY DO. IT WORKS. OMG. (Sorry, usually stuff like this blows up in my face once I test it rigorously). Tissue purity is much improved (from 2.4 tissue types per cluster to 2.0 with the most frequent tissue frequency staying largely the same) 
 ```{r}
 
 set.seed(23235)
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
+lengthScaledTPM_qsmooth_highExp_remove_lowGenes_noENCODE <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes %>% data.frame() %>% select(-contains('ENCSR'))
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_noENCODE)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
 tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_noENCODE)
 
 tsne_go <- tsne_plot %>% left_join(.,core_info)
 
@@ -214,57 +195,29 @@ fit <- kmeans(tsne_go[,c('X1','X2')], 24)
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
 ```
 
-Let's see whether having qsmooth correct for Sub Tissues improves performance.
-
+Testing sva to deal with batch effects
 ```{r}
-load('~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex.Rdata')
-lengthScaledTPM <- lengthScaledTPM[,!(is.na(lengthScaledTPM[1,]))]
+# http://bioconductor.org/packages/release/bioc/vignettes/sva/inst/doc/sva.pdf
+# http://www.bioconductor.org/help/workflows/rnaseqGene/#batch
 
-
-samples <- data.frame(colnames(lengthScaledTPM))
+library(sva)
+samples <- data.frame(colnames(lengthScaledTPM_qsmooth_highExp))
 colnames(samples) <- 'sample_accession'
-tissue_frame <- left_join(samples, core_info) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
+tissue_frame <- left_join(samples, core_tight) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
 # make sure they are lined up
 tissues <- left_join(samples, tissue_frame)
-# just keep the keeper set of tissues (no prostrate, etc)
-sub <- tissues %>% filter(Tissue %in% keepers)
-lengthScaledTPM_sub<-lengthScaledTPM[,sub$sample_accession]
-qs <- qsmooth(object = lengthScaledTPM_sub,groupFactor = as.factor(sub$Sub_Tissue))
-lengthScaledTPM_qsmooth_subTissue <- qsmoothData(qs)
+mod <- model.matrix(~as.factor(tissues$Tissue), data=data.frame(tissues))
+mod0 = model.matrix(~1,data=data.frame(tissues))
 
-lengthScaledTPM_qsmooth_highExp_subTissue <- as.matrix(lengthScaledTPM_qsmooth_subTissue[,!colnames(lengthScaledTPM_qsmooth_subTissue) %in% lows])
-lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue <- lengthScaledTPM_qsmooth_highExp_subTissue[!(row.names(lengthScaledTPM_qsmooth_highExp_subTissue) %in% lowly_expressed_genes),]
-
-### not 'corrected'
-set.seed(23235)
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_subTissue)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
-tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_subTissue)
-
-tsne_go <- tsne_plot %>% left_join(.,core_info)
-
-set.seed(23235)
-fit <- kmeans(tsne_go[,c('X1','X2')], 24)
-cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
+#n.sv = num.sv(lengthScaledTPM_qsmooth_highExp,mod,method="leek")
+svobj = sva(lengthScaledTPM_qsmooth_highExp,mod,mod0,n.sv = 50)
 
 
-```
-Now with the corrections....kind of middling. May not be enough tissues per group. 
-```{r}
-set.seed(23235)
-tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue)+1)),perplexity = 40, check_duplicates = FALSE, theta=0.0 )
-tsne_plot <- data.frame(tsne_out$Y)
-tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes_subTissue)
-
-tsne_go <- tsne_plot %>% left_join(.,core_info)
-
-set.seed(23235)
-fit <- kmeans(tsne_go[,c('X1','X2')], 24)
-cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
 ```
 
 OK, saving lengthScaledTPM_qsmooth_highExp_remove_lowGenes for downstream use:
 ```{r}
 save(lengthScaledTPM_qsmooth_highExp_remove_lowGenes, file='~/git/unified_gene_expression/data/lengthScaledTPM_processed.Rdata')
 ```
+
 
