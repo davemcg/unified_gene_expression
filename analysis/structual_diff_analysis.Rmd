@@ -1,0 +1,134 @@
+---
+title: "ID of genes underlying Retina/RPE/Cornea separation from non-brain GTEx Tissues"
+output: html_notebook
+---
+
+Inspired lightly by seurat's QC and pre-processing of single-cell RNA-seq, I'm going to ID genes correlated with principal components separating eye tissues from GTEx tissues.
+
+```{r}
+library(tidyverse)
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+source('~/git/scripts/theme_Publication.R')
+```
+
+ID high variance genes
+```{r}
+vars<-apply(lengthScaledTPM_qsmooth_highExp_remove_lowGenes,1,function(x) var(x))
+```
+
+Get top n
+```{r}
+topX<-names(head(sort(-vars),n=1000))
+```
+
+Parse down data set to top n genes
+```{r}
+lengthScaledTPM_topVar<-lengthScaledTPM_qsmooth_highExp_remove_lowGenes[topX,]
+```
+
+Do PCA and attach metadata for ploting
+```{r}
+set.seed(123412)
+lengthScaledTPM_topVar <- t(lengthScaledTPM_topVar)
+pca <- prcomp(log2(lengthScaledTPM_topVar+1))
+pca_data<-data.frame(pca$x)
+pca_data$sample_accession <- row.names(pca_data)
+pca_data <- left_join(pca_data,core_tight)
+```
+
+Show stdev for each PC
+```{r}
+plot(pca)
+```
+
+Roll through first n PCs to look for best PCs differentiation eye tissues
+```{r,fig.width=3, fig.height=3.5}
+ggplot(data=pca_data,aes(x=PC1,y=PC2,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC3,y=PC4,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC5,y=PC6,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC7,y=PC8,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC9,y=PC10,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC11,y=PC12,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC13,y=PC14,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC15,y=PC16,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC17,y=PC18,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+
+ggplot(data=pca_data,aes(x=PC19,y=PC20,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle("PCA") + 
+  theme_Publication()
+```
+
+PC4 does a nice job separating Retina and RPE from the rest. Don't see anything good for cornea.
+
+Let's look for genes correlated with PC4
+```{r}
+pc4 <- data.frame(pca$x)$PC4
+pc4_cor <- apply(lengthScaledTPM_qsmooth_highExp_remove_lowGenes, 1, function(x) cor(x, pc4))
+```
+
+Top genes correlated
+```{r}
+top_eye_genes <- names(head(sort(-abs(pc4_cor)),n=1000))
+```
+
+How does their removal change t-sne?
+```{r,fig.width=3, fig.height=3.5}
+library(Rtsne)
+lsTPM_gene_removal <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[!row.names(lengthScaledTPM_qsmooth_highExp_remove_lowGenes) %in% top_eye_genes,]
+tsne_out_eye_gene_removal <- Rtsne(as.matrix(log2(t(lsTPM_gene_removal)+1)),perplexity = 50, check_duplicates = FALSE, theta=0.0 )
+tsne_plot <- data.frame(tsne_out_eye_gene_removal$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
+
+tsne_plot %>% left_join(.,core_tight)  %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle(paste0("Eye Gene Removal. t-sne. Perplexity = ", 50)) +
+  theme_Publication()
+
+tsne_out <- Rtsne(as.matrix(log2(t(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)+1)),perplexity = 50, check_duplicates = FALSE, theta=0.0 )
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)
+
+tsne_plot %>% left_join(.,core_tight)  %>%
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue)) + 
+  geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle(paste0("All Genes. t-sne. Perplexity = ", 50)) +
+  theme_Publication()
+```
