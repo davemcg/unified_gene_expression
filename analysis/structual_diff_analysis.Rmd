@@ -139,6 +139,7 @@ Let's check for obvious systematic differences between RPE/Retina and the other 
 gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth_highExp_remove_lowGenes),sample_accession) %>%
   left_join(.,core_tight) %>% 
   mutate(Group=ifelse(Tissue %in% c('RPE','Retina'), 'Eye', 
-                      ifelse(grepl('Brain',Tissue), 'Brain', 'Other')))
+                      ifelse(grepl('Brain',Tissue), 'Brain',
+                             ifelse(grepl('ENCODE', Tissue), 'ENCODE', 'Other'))))
 ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=Group))+geom_density()+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
 ```
