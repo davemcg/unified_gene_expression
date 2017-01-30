@@ -43,7 +43,7 @@ plot(pca)
 ```
 
 Roll through first n PCs to look for best PCs differentiation eye tissues
-```{r,fig.width=3, fig.height=3.5}
+```{r,fig.width=4, fig.height=4.5}
 ggplot(data=pca_data,aes(x=PC1,y=PC2,colour=Tissue,shape=Tissue)) + 
   geom_point(size=4) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle("PCA") + 
@@ -103,13 +103,16 @@ pc4 <- data.frame(pca$x)$PC4
 pc4_cor <- apply(lengthScaledTPM_qsmooth_highExp_remove_lowGenes, 1, function(x) cor(x, pc4))
 ```
 
-Top genes correlated
+Top genes correlated. Cor of 0.3 is where the inflection point is. 
 ```{r}
-top_eye_genes <- names(head(sort(-abs(pc4_cor)),n=1000))
+plot(density(abs(pc4_cor)))
+table(abs(pc4_cor)<0.3)
+table(abs(pc4_cor)<0.5)
+top_eye_genes <- names(head(sort(-abs(pc4_cor)),n=1100))
 ```
 
-How does their removal change t-sne?
-```{r,fig.width=3, fig.height=3.5}
+How does their removal change t-sne? Not much. 
+```{r,fig.width=4, fig.height=4.5}
 library(Rtsne)
 lsTPM_gene_removal <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[!row.names(lengthScaledTPM_qsmooth_highExp_remove_lowGenes) %in% top_eye_genes,]
 tsne_out_eye_gene_removal <- Rtsne(as.matrix(log2(t(lsTPM_gene_removal)+1)),perplexity = 50, check_duplicates = FALSE, theta=0.0 )
@@ -134,12 +137,12 @@ tsne_plot %>% left_join(.,core_tight)  %>%
 ```
 No significant difference.
 
-Let's check for obvious systematic differences between RPE/Retina and the other tissue sets.
+Let's check for obvious systematic differences between RPE/Retina and the other tissue sets. Looks fine - ENCODE has a marked shift. 
 ```{r}
 gather_lST<-gather(data.frame(lengthScaledTPM_qsmooth_highExp_remove_lowGenes),sample_accession) %>%
   left_join(.,core_tight) %>% 
   mutate(Group=ifelse(Tissue %in% c('RPE','Retina'), 'Eye', 
                       ifelse(grepl('Brain',Tissue), 'Brain',
                              ifelse(grepl('ENCODE', Tissue), 'ENCODE', 'Other'))))
-ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=Group))+geom_density()+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
+ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession,colour=Group))+geom_density(alpha=0.1)+coord_cartesian(ylim=c(0,0.5))+theme_Publication()
 ```
