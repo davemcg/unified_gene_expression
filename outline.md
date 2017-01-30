@@ -22,37 +22,43 @@ GTEx provides gene/transcript level expression datasets across dozens of people 
   * if ENCODE matches by RNA-seq, then you can leverage ChIP-seq data
   
 # Results
-- How samples were selected
-  * Queried SRA database for *retina*, *RPE*, *cornea*, *eye* with *RNA-seq*
-- Workflow
-  * Stage 1: ID samples, pull metadata, pull SRA file, convert to fastq, quantitate with Salmon
-  * Stage 2: tximport to get gene-level TPM, remove genes with low counts across all samples, remove Samples with low median gene counts > 1, t-sne cluster to ID outliers, qsmooth to quantile normalize TPM
-- Accounting
-  * Eye, GTEx, ENCODE 
-  * table: tissue, study, number of samples (pre and post filter), reads processed, base pairs sequenced, alignment percentage
-- Clustering
-  * recapitulate organ grouping in t-sne parsing
-  * see fetal (either tissue or cell line) RPE and retina cluster away from adult RPE and retina
-  * Retina is a unique tissue
-  * RPE/cornea tends to stay together
-    * closest GTEx tissue is transformed fibroblasts to RPE/cornea
-  * ENCODE cell lines
-    * cluster far apart from everything else
-- Basic gene list parsing
-  * what is unique (only expressed in eye) to retina, rpe, cornea?
-  * what is not expressed in eye tissues?
-- DE with DESeq2
-  * RPE vs Retina
-  * 'fetal' vs adult (both RPE and Retina)
-- DTE with Sleuth?
-- Transcriptome
-  * cufflinks
-  * or try to get pre-published transcriptomes for retina/rpe and add to gencode v25 transcript fasta file then re-run salmon?
-- Network analysis (WGCNA, GSEA)?
-- Pseudo ASE/eQTL
-  * Use RNA-seq data to call SNPs, then can do ASE/eQTL analysis
-  * https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-015-0152-4
-  * Would have to call RNA-seq with STAR.....
+Hundreds of individual human eye tissue RNA-seq datasets publically available across over a dozen research studies
+-	Workflow/procedure to ID potential RNA-seq experiments
+-	Table 1: Sources of Human Eye Tissue RNA-Seq Dataset
+
+Eye tissues from disparate studies cluster according to labelled eye components
+-	Workflow/process to quantify, normalize, and QC RNA-seq studies
+  * Supplemental Figure: Density plots of gene expression by sample
+   * A. log2 transformation 
+   * B. log2 transformation with qsmooth normalization, outliers (low median) identified
+-	Figure: Human eye-tissue transcriptome unsupervised clustering
+ * A. color by tissue
+Cell line derived eye tissues cluster with fetal eye tissues
+-	Figure: Human eye-tissue transcriptome unsupervised clustering
+ *	B. color by sub-tissue
+
+Eye tissues cluster apart from other human tissues
+-	GTEx dataset integrated 
+-	Figure: Pan-human tissue gene expression clustering
+
+Identification of genes that distinguish eye tissues from each other and human tissues 
+-	Differential Expression
+-	Random forest analysis
+  *	RPE vs Retina/Cornea and human blob
+  *	Retina vs RPE/Cornea and human blob
+  *	Cornea vs RPE/Retina and human blob
+-	Table:  GO enrichment of eye tissue signature genes
+-	Supplemental Table: Full list of eye tissue signature genes
+
+Retina and RPE gene networks built to identify co-regulated gene modules
+-	WGCNA
+-	Figure: Retina and RPE networks identify known and novel eye biology
+  * A. overview of networks
+  * B. GO enrichment of modules
+
+Web app to facilitate easy and powerful utilization of the collated data
+-	eyeIntegration
+Figure: eyeIntegration allows for full-access to data for all end-users
 - Loop back to known eye biology
   * AMD loci?
   * GTEx fibroblast ASE/eQTL have any eye biology links?
