@@ -54,7 +54,12 @@ eye_rnaseq_experiments_extra <-
                             mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
                             mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Cell_Line','Tissue')) %>% 
                             select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
-
+# label fetal vs adult vs cell
+eye_rnaseq_experiments_extra <- 
+  eye_rnaseq_experiments_extra %>% 
+  mutate(source_name = grab_attribute(sample_attribute,'source_name','\\|\\|')) %>% 
+  mutate(Age = )
+                          
 # hack in E-MTAB-4377
 e_mtab_4377 <- fread('~/git/unified_gene_expression/data/E-MTAB-4377.sdrf.txt')
 nums <- sapply(e_mtab_4377$`Source Name`, function(x) strsplit(x, '\\s')[[1]][2])
