@@ -39,26 +39,23 @@ orig_source <- c('Cell','Tissue')
 # found at this point I accidentally brought along a few samples that are melanoma
 # filtered out at this point
 eye_rnaseq_experiments_extra <-  
-                           eye_rnaseq_experiments %>% 
-                           filter(!grepl('melanoma',sample_attribute)) %>% 
-                           mutate(Tissue=grab_attribute(sample_attribute,'tissue','\\|\\|'),
-                                        Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
-                                        Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
-                                        Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Tissue)) %>% 
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Tissue)) %>%
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Tissue)) %>%
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
-                            mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'noggin', ignore.case=T),'Lens', Tissue)) %>% 
-                            mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
-                            mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Cell_Line','Tissue')) %>% 
-                            select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
-# label fetal vs adult vs cell
-eye_rnaseq_experiments_extra <- 
-  eye_rnaseq_experiments_extra %>% 
-  mutate(source_name = grab_attribute(sample_attribute,'source_name','\\|\\|')) %>% 
-  mutate(Age = )
+  eye_rnaseq_experiments %>% 
+  filter(!grepl('melanoma',sample_attribute)) %>% 
+  mutate(Tissue=grab_attribute(sample_attribute,'tissue','\\|\\|'),
+         Cell=grab_attribute(sample_attribute,'cell type','\\|\\|'),
+         Source=grab_attribute(sample_attribute,'source_name|Origen','\\|\\|'),
+         Histological=grab_attribute(sample_attribute,'histological type','\\|\\|')) %>% 
+  mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'neural|Retina_|tissue: retina', ignore.case=T),'Retina',NA)) %>% 
+  mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'RPE|pigment',ignore.case=T),'RPE',Tissue)) %>% 
+  mutate(Tissue=ifelse(grepl(x = sample_attribute,pattern = 'histological type: neural retina',ignore.case=T),'Retina',Tissue)) %>%
+  mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'cornea|limbus', ignore.case=T),'Cornea',Tissue)) %>%
+  mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
+  mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'noggin', ignore.case=T),'Lens', Tissue)) %>% 
+  mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
+  mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Cell_Line','Adult Tissue')) %>%
+  mutate(Origin=ifelse(grepl('fetal|fetus|wk',sample_attribute, ignore.case = T),'Fetal',Origin)) %>% 
+  select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
+
                           
 # hack in E-MTAB-4377
 e_mtab_4377 <- fread('~/git/unified_gene_expression/data/E-MTAB-4377.sdrf.txt')
