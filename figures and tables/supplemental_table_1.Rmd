@@ -1,0 +1,11 @@
+---
+title: "Supplemental Table S1"
+output: html_notebook
+---
+
+```{r}
+load('~/git/unified_gene_expression/data/gtex_keepers.Rdata')
+keepers %>% group_by(Tissue) %>% summarise(`Sample Count` = n())
+keepers %>% group_by(Tissue, Site, Gender) %>% summarise(`Sample Count` = n())
+keepers %>% select(Tissue, Site, Gender, sample_accession)
+```
