@@ -42,8 +42,35 @@ human_tx_studies <- rbind(
 
 load('~/git/unified_gene_expression/data/eye_studies_considered_2017-01-19.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+source('~/git/scripts/theme_Publication.R')
 ```
 
+```{r}
+human_tx_studies %>% group_by(study_accession) %>% summarise(count=n())
+human_tx_studies %>% group_by(sample_accession) %>% summarise(count=n())
 
-dim(eye_studies_considered)
-core_tight %>% filter(study_accession %in% eye_studies_considered$study_accession) %>% nrow()
+core_eye_info %>% group_by(study_accession) %>% summarise(count=n()) %>% arrange(-count)
+core_eye_info %>% group_by(sample_accession) %>% summarise(count=n())
+
+core_eye_info %>% group_by(Tissue) %>% summarise(count=n()) %>% arrange(-count)
+```
+
+```{r}
+core_eye_info %>% 
+  mutate(`Study Accession`=ifelse(grepl(x = study_accession, pattern = 'E_MTAB_4377'),'E-MTAB-4377', study_accession)) %>% 
+  group_by(`Study Accession`, Tissue, Origin) %>% 
+  summarise(`Sample Count`=n()) %>% 
+  ggplot(.,aes(y=`Sample Count`, x=`Study Accession`,fill=Tissue)) + 
+    geom_bar(stat='identity',position='dodge') +
+    theme_Publication() +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0))
+
+core_eye_info %>% 
+  group_by(Tissue, Origin) %>% 
+  summarise(`Sample Count`=n()) %>% 
+  ggplot(.,aes(y=`Sample Count`, x=Tissue,fill=Origin)) + 
+    geom_bar(stat='identity') + 
+    facet_wrap(~Origin) + 
+    theme_Publication() +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0))
+```
