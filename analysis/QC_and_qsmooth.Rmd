@@ -162,14 +162,7 @@ fit <- kmeans(tsne_go[,c('X1','X2')], 24)
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% formattable()
 ```
 
-```{r}
-##############
-# checking out CountClust
-# https://www.bioconductor.org/packages/3.3/bioc/vignettes/CountClust/inst/doc/count-clust.pdf
-##############
 
-
-```
 
 Now go deeper and count number of Tissue types and purity (highest freq) for each cluster
 ```{r}
@@ -195,26 +188,6 @@ fit <- kmeans(tsne_go[,c('X1','X2')], 24)
 cbind(tsne_go, fit$cluster) %>% group_by(fit$cluster,Tissue) %>% summarise(Count = n()) %>% mutate(freq = Count /sum(Count)) %>% summarise(Tissue_Count = n(), highest_freq=max(freq)) %>% mutate(mean(Tissue_Count), mean(highest_freq)) %>% select(`mean(Tissue_Count)`, `mean(highest_freq)`) %>% distinct()
 ```
 
-Testing sva to deal with batch effects
-```{r}
-# http://bioconductor.org/packages/release/bioc/vignettes/sva/inst/doc/sva.pdf
-# http://www.bioconductor.org/help/workflows/rnaseqGene/#batch
-
-library(sva)
-samples <- data.frame(colnames(lengthScaledTPM_qsmooth_highExp))
-colnames(samples) <- 'sample_accession'
-tissue_frame <- left_join(samples, core_tight) %>% select(sample_accession, Tissue, Sub_Tissue) %>% distinct()
-# make sure they are lined up
-tissues <- left_join(samples, tissue_frame)
-mod <- model.matrix(~as.factor(tissues$Tissue), data=data.frame(tissues))
-mod0 = model.matrix(~1,data=data.frame(tissues))
-
-#n.sv = num.sv(lengthScaledTPM_qsmooth_highExp,mod,method="leek")
-
-#svobj = sva(lengthScaledTPM_qsmooth_highExp,mod,mod0,n.sv = 50)
-
-
-```
 
 OK, saving lengthScaledTPM_qsmooth_highExp_remove_lowGenes for downstream use:
 ```{r}
