@@ -1,0 +1,41 @@
+---
+title: "Figure 2"
+output: html_notebook
+---
+
+```{r}
+library(Rtsne)
+library(ggplot2)
+library(formattable)
+library(tidyverse)
+source('~/git/scripts/theme_Publication.R')
+# https://github.com/stephaniehicks/qsmooth
+load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+source('~/git/scripts/theme_Publication.R')
+```
+
+Plot eye-only clustering
+```{r, fig.width=3, fig.height=2.5}
+set.seed(23235)
+eye_samples <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(study_accession!='SRP012682') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% 
+  .[['sample_accession']]
+
+eye_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_samples]
+perp=25
+tsne_out <- Rtsne(as.matrix(log2(t(eye_TPM)+1)),perplexity = perp, check_duplicates = FALSE, theta=0.0)
+tsne_plot <- data.frame(tsne_out$Y)
+tsne_plot$sample_accession <- colnames(eye_TPM)
+
+tsne_plot %>% left_join(.,core_tight)  %>% 
+  mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
+  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Origin)) + 
+  geom_point(size=4, alpha=0.8) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggtitle(paste0("t-sne. Perplexity = ", perp)) +
+  theme_Publication() + guides(colour=guide_legend(nrow=2), shape=guide_legend(nrow=2))
+```
