@@ -17,7 +17,7 @@ source('~/git/scripts/theme_Publication.R')
 ```
 
 Plot eye-only clustering
-```{r, fig.width=3, fig.height=2.5}
+```{r, fig.width=3, fig.height=3}
 set.seed(23235)
 eye_samples <- core_tight %>% 
   filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
