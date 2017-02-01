@@ -23,7 +23,8 @@ eye_samples <- core_tight %>%
   filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(study_accession!='SRP012682') %>% 
-  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% # these three removed because they group reliably with RPE
+  filter(!Tissue %in% 'ESC') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% # these three removed because they group reliably with RPE. See figure_2.Rmd code
   .[['sample_accession']]
 #GTEx
 GTEx_samples <- core_tight %>% 
@@ -32,3 +33,14 @@ GTEx_samples <- core_tight %>%
   .[['sample_accession']]
 ```
 `r length(eye_samples)` eye samples remaining and `r length(GTEx_samples)` GTEx samples remaining.
+
+Table of all samples that were quantified, marked by whether they failed QC.
+```{r}
+core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  mutate(QC=ifelse(sample_accession %in% c(eye_samples, GTEx_samples), 'Pass', 'Fail, low median counts')) %>% 
+  mutate(QC=ifelse(sample_accession %in% c('SRS523795','SRS360124','SRS360123'), 'Fail, potential tissue mislabel', QC)) %>% 
+  arrange(study_accession, Tissue, Origin, QC) %>% 
+  select(study_accession, study_title, sample_accession, Tissue, Origin, QC)
+```
