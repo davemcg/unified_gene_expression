@@ -1,10 +1,9 @@
 ---
-title: "Supplmental Figure S2""
+title: "Supplemental Figure S2"
 output: html_notebook
 ---
 
 ```{r}
-library(qsmooth)
 library(Rtsne)
 library(ggplot2)
 library(formattable)
@@ -17,10 +16,19 @@ source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 ```
 
 
-Calculate samples remaining after QC
+Samples remaining after QC
 ```{r}
 #Eye
-length(intersect(core_eye_info$sample_accession, colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)))
+eye_samples <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(study_accession!='SRP012682') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% # these three removed because they group reliably with RPE
+  .[['sample_accession']]
 #GTEx
-length(intersect(eye_samples, colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)))
+GTEx_samples <- core_tight %>% 
+  filter(study_accession=='SRP012682') %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
+  .[['sample_accession']]
 ```
+`r length(eye_samples)` eye samples remaining and `r length(GTEx_samples)` GTEx samples remaining.
