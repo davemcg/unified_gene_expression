@@ -1,6 +1,7 @@
 library(RSQLite)
 # Checks for eye-related studies
-getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-19.sqlite.gz')
+# getSRAdbFile(destdir='/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/',destfile='SRAmetadb_2017-01-19.sqlite.gz')
+# last pull
 sqlfile <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/SRAmetadb_2017-01-19.sqlite'
 sra_con <- dbConnect(RSQLite::SQLite(),sqlfile)
 
@@ -59,5 +60,4 @@ eye_rnaseq_experiments <- bind_rows(eye_rnaseq_experiments,human_tx_studies %>% 
 # save new eye metadata
 save(eye_rnaseq_experiments, file='data/eye_rnaSeq_experiments_sraMetadata.Rdata')
 # save new studies considered
-
-save()
+save(current_studies, file='data/eye_studies_considered_2017-01-19.Rdata')
