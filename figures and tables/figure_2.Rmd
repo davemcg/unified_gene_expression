@@ -6,8 +6,8 @@ output: html_notebook
 ```{r}
 library(Rtsne)
 library(ggplot2)
-library(formattable)
 library(tidyverse)
+library(superheat)
 source('~/git/scripts/theme_Publication.R')
 # https://github.com/stephaniehicks/qsmooth
 load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
@@ -61,4 +61,24 @@ tsne_plot %>% left_join(.,core_tight)  %>%
   geom_point(size=4, alpha=0.8) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Pan-human tissue t-sne')) +
   theme_Publication() + guides(colour=guide_legend(nrow=6), shape=guide_legend(nrow=6))
+```
+
+Heatmap of t-sne distances for pan-tissue. Aggregated at the tissue level
+```{r ,fig.width=4, fig.height=4}
+
+mean_coord <- tsne_plot %>% 
+  left_join(.,core_tight) %>% 
+  group_by(Sub_Tissue) %>% 
+  summarise(X1=mean(X1),X2=mean(X2)) %>% 
+  data.frame()
+
+distances <- as.matrix(dist(mean_coord[,2:3])) %>% data.frame() 
+colnames(distances) <- mean_coord[,1]                     
+row.names(distances) <- mean_coord[,1]
+superheat(distances, 
+          pretty.order.rows = T, 
+          pretty.order.cols = T,
+          bottom.label.text.angle = 90,
+          bottom.label.text.size = 4, 
+          left.label.text.size = 4)
 ```
