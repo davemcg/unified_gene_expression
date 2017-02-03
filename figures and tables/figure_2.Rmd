@@ -68,7 +68,7 @@ Heatmap of t-sne distances for pan-tissue. Aggregated at the tissue level
 
 mean_coord <- tsne_plot %>% 
   left_join(.,core_tight) %>% 
-  group_by(Sub_Tissue) %>% 
+  group_by(Tissue) %>% 
   summarise(X1=mean(X1),X2=mean(X2)) %>% 
   data.frame()
 
@@ -76,6 +76,8 @@ distances <- as.matrix(dist(mean_coord[,2:3])) %>% data.frame()
 colnames(distances) <- mean_coord[,1]                     
 row.names(distances) <- mean_coord[,1]
 superheat(distances, 
+          heat.pal = c('#386cb0','white'),
+          col.dendrogram = T,
           pretty.order.rows = T, 
           pretty.order.cols = T,
           bottom.label.text.angle = 90,
