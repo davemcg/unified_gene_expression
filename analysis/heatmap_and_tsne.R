@@ -21,4 +21,4 @@ for (n in seq(5,50)) {
   tsne_list[[n]]<-tsne_plot
 }
 long_tsne_plot <- do.call(rbind, tsne_list)
-save(long_tsne_plot, file='~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity.Rdata')
+save(long_tsne_plot, file='~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
