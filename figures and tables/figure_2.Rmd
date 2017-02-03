@@ -38,11 +38,11 @@ tsne_plot %>% left_join(.,core_tight)  %>%
   geom_point(size=4, alpha=0.8) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Eye tissue t-sne')) +
   theme_Publication() + guides(colour=guide_legend(nrow=2), shape=guide_legend(nrow=2)) +
-  #geom_density2d(alpha=0.3)
+  geom_density2d(alpha=0.3)
 ```
 
 Plot pan-human tissue expression
-```{r, fig.width=4, fig.height=4.5}
+```{r, fig.width=3, fig.height=3.5}
 set.seed(23235)
 eye_and_gtex_samples <- core_tight %>% 
   filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
@@ -63,7 +63,7 @@ tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Tissue,alpha=0.6)) + 
   geom_point(size=4, alpha=0.6) + scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Pan-human tissue t-sne')) +
-  theme_Publication() + guides(colour=guide_legend(nrow=6), shape=guide_legend(nrow=6))
+  theme_Publication() + guides(colour=guide_legend(nrow=6), shape=guide_legend(nrow=8))
 ```
 
 Heatmap of t-sne distances for pan-tissue. Aggregated across 25 to 50 perplexities and at the tissue level
