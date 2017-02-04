@@ -1,0 +1,159 @@
+---
+title: "DE"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+We begin by loading in the necessary packages and data. The *expr.retina.rpe* data frame contains the expression data (in counts) as well as the associated meta data for both the retina and RPE samples.
+
+```{r, message = FALSE}
+source('~/Documents/git/scripts/theme_Publication.R')
+
+library(IHW)
+library(DESeq2)
+library(tidyverse)
+library(fdrtool)
+library(Rtsne)
+library(biomaRt)
+library(dplyr)
+library(topGO)
+
+load(file = "~/Documents/git/unified_gene_expression/data/counts_retina_rpe.Rdata")
+
+expr = t(expr.retina.rpe[, 1:(which(colnames(expr.retina.rpe) == "study_accession") - 1)])
+meta = expr.retina.rpe[, which(colnames(expr.retina.rpe) == "study_accession"):ncol(expr.retina.rpe)]
+
+dim(expr)
+dim(meta)
+
+class(expr) <- "integer"
+```
+
+We first create a __DESeqDataSet__ object. We then perform the differential expression analysis (Retina vs. RPE), first with no batch correction. We find 434 significant genes ($p<0.05$).
+
+```{r, message = FALSE}
+dds <- DESeqDataSetFromMatrix(countData = expr,
+                              colData = meta,
+                              design = ~ Tissue)
+DESeq2Table <- DESeq(dds)
+DESeq2Res <- results(DESeq2Table, filterFun=ihw, addMLE=TRUE)
+print(head(DESeq2Res))
+print(table(DESeq2Res$padj < 0.05))
+
+# hist of pvalues
+hist(DESeq2Res$pvalue, col = "lavender", main = "Retina vs RPE, no correction", xlab = "p-values")
+
+# Filter by padj and padjust to get rid of NA
+DESeq2Res <- DESeq2Res[ !is.na(DESeq2Res$padj), ]
+DESeq2Res <- DESeq2Res[ !is.na(DESeq2Res$pvalue), ]
+
+# fdr ztool to correct pvalues
+DESeq2Res <- DESeq2Res[, -which(names(DESeq2Res) == "padj")]
+FDR.DESeq2Res <- fdrtool(DESeq2Res$stat, statistic= "normal", plot = F)
+DESeq2Res[,"padj"]  <- adj_pvalues(ihw(FDR.DESeq2Res$pval, DESeq2Res$baseMean, 0.05))
+hist(FDR.DESeq2Res$pval, col = "royalblue4", 
+     main = "Retina vs RPE, corrected null model", xlab = "CORRECTED p-values")
+
+# MA plot
+DESeq2::plotMA(DESeq2Res)
+
+# output data
+stats <- data.frame(DESeq2Res)
+gene_counts <- counts(DESeq2Table, normalized=TRUE)
+
+# merge together
+out <- merge(stats,gene_counts,by="row.names")
+colnames(out)[1] <- 'Gene'
+
+# order by pvalue and add FC column
+out <- out %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::select(Gene:padj,FoldChange)
+
+out.sig <- filter(out, padj < 0.05)
+
+write.csv(out, file = "~/Documents/git/unified_gene_expression/results/DE_full_noCorrection.csv")
+write.csv(out.sig, file = "~/Documents/git/unified_gene_expression/results/DE_pAdj0.05_noCorrection.csv")
+
+write_delim(as.data.frame(out.sig$Gene), delim = "\n", path = "~/Documents/git/unified_gene_expression/results/DE_pAdj0.05_noCorrection_geneList.txt")
+```
+
+# Batch Issue Investigation
+
+We now consider investigating possible batch issues. The two possible batch effects we explore are *study_accession* and whether the sample comes from adult tissue or fetal tissue (all of the fetal tissue is from cell lines).
+
+```{r, message = FALSE}
+set.seed(47)
+
+perplexities = seq(10, 40, by = 10)
+
+for(p in perplexities){
+  
+  tsne_out = Rtsne(t(expr), perplexity = p, check_duplicates = F, theta = 0.0)
+  tsne_plot = data.frame(tsne_out$Y)
+  
+  p1 = tsne_plot %>%
+    ggplot(aes(x=X1,y=X2,colour=factor(meta$study_accession))) + 
+    geom_point(size=4) + ggtitle(paste0("t-sne. Perplexity = ", p))
+  print(p1)
+  
+  p2 = tsne_plot %>%
+    ggplot(aes(x=X1,y=X2,colour=factor(meta$Origin))) + 
+    geom_point(size=4) + ggtitle(paste0("t-sne. Perplexity = ", p))
+  print(p2)
+}
+```
+The clearest evidence of clustering occurs with a perplexity of 20. The clusters are clearly defined by the variable *study_accession*. As such, we consider incorporating *study_accession* into our differential expression model. We perform the differential expression analysis (Retina vs. RPE), first with no batch correction. We find 443 significant genes ($p<0.05$).
+
+```{r, message = FALSE}
+dds <- DESeqDataSetFromMatrix(countData = expr,
+                              colData = meta,
+                              design = ~ Tissue + study_accession)
+DESeq2Table <- DESeq(dds)
+DESeq2Res <- results(DESeq2Table, filterFun=ihw, contrast = c("Tissue", "Retina", "RPE"), addMLE=TRUE)
+print(head(DESeq2Res))
+print(table(DESeq2Res$padj < 0.05))
+
+# hist of pvalues
+hist(DESeq2Res$pvalue, col = "lavender", main = "Retina vs RPE, no correction", xlab = "p-values")
+
+# Filter by padj and padjust to get rid of NA
+DESeq2Res <- DESeq2Res[ !is.na(DESeq2Res$padj), ]
+DESeq2Res <- DESeq2Res[ !is.na(DESeq2Res$pvalue), ]
+
+# fdr ztool to correct pvalues
+DESeq2Res <- DESeq2Res[, -which(names(DESeq2Res) == "padj")]
+FDR.DESeq2Res <- fdrtool(DESeq2Res$stat, statistic= "normal", plot = F)
+DESeq2Res[,"padj"]  <- adj_pvalues(ihw(FDR.DESeq2Res$pval, DESeq2Res$baseMean, 0.05))
+hist(FDR.DESeq2Res$pval, col = "royalblue4", 
+     main = "Retina vs RPE, corrected null model", xlab = "CORRECTED p-values")
+
+# MA plot
+DESeq2::plotMA(DESeq2Res)
+
+# output data
+stats <- data.frame(DESeq2Res)
+gene_counts <- counts(DESeq2Table, normalized=TRUE)
+
+# merge together
+out.study.correct <- merge(stats,gene_counts,by="row.names")
+colnames(out.study.correct)[1] <- 'Gene'
+
+# order by pvalue and add FC column
+out.study.correct <- out.study.correct %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::select(Gene:padj,FoldChange)
+
+out.sig.study.correct <- filter(out.study.correct, padj < 0.05)
+
+write.csv(out.study.correct, file = "~/Documents/git/unified_gene_expression/results/DE_full_correction_studyAccession.csv")
+write.csv(out.sig.study.correct, file = "~/Documents/git/unified_gene_expression/results/DE_pAdj0.05_correction_studyAccession.csv")
+
+write_delim(as.data.frame(out.sig.study.correct$Gene), delim = "\n", path = "~/Documents/git/unified_gene_expression/results/DE_pAdj0.05_correction_studyAccession_geneList.txt")
+```
+
+Between the 434 genes found significant with no incorporation of *study_accession* and the 443 genes found significant with *study_accession* incorporated, there was an intersection of 215 genes.
+
+```{r, message = FALSE}
+length(intersect(out.sig$Gene, out.sig.study.correct$Gene))
+```
+
+# GO term annotation analysis
+We conduct GO term annotation using the PANTHER classification system (http://pantherdb.org/tools/compareToRefList.jsp), by GeneOntology. This is performed through the corresponding web app.
