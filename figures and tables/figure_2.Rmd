@@ -91,5 +91,7 @@ superheat(distances,
           bottom.label.text.angle = 90,
           bottom.label.text.size = 5, 
           left.label.text.size = 5,
-          dist.method = 'euclidean')
+          dist.method = 'euclidean',
+          grid.hline.col = "white",
+          grid.vline.col = "white")
 ```
