@@ -1,0 +1,48 @@
+---
+title: "Supplmenetary Figure 1"
+output: html_notebook
+---
+
+```{r}
+library(Rtsne)
+library(ggplot2)
+library(tidyverse)
+library(superheat)
+source('~/git/scripts/theme_Publication.R')
+# https://github.com/stephaniehicks/qsmooth
+load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+source('~/git/scripts/theme_Publication.R')
+```
+
+
+Heatmap of t-sne distances for pan-tissue. Aggregated across 25 to 50 perplexities. Not aggregated by tissue. More for outlier visualization.
+```{r, fig.width=5, fig.height=6}
+
+load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
+
+eye_and_gtex_samples <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% 
+  .[['sample_accession']]
+
+mean_coord <- long_tsne_plot%>% 
+  filter(perplexity >= 25, sample_accession %in% eye_and_gtex_samples) %>% 
+  group_by(sample_accession) %>% summarise(X1=mean(X1),X2=mean(X2)) %>% # group by sample and summarize across all perplexities
+  left_join(.,core_tight) %>% 
+  data.frame()
+
+
+distances <- as.matrix(dist(mean_coord[,2:3])) %>% data.frame() 
+
+library(pheatmap)
+
+pheatmap(distances, 
+         annotation_row = data.frame(mean_coord$Tissue),
+         show_rownames = F, 
+         show_colnames = F)
+
+
+```
