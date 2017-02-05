@@ -27,18 +27,31 @@ eye_samples <- core_tight %>%
   .[['sample_accession']]
 
 eye_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_samples]
-perp=25
+perp=20
 tsne_out <- Rtsne(as.matrix(log2(t(eye_TPM)+1)),perplexity = perp, check_duplicates = FALSE, theta=0.0)
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(eye_TPM)
 
+
+# dbscan
+
+dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=1, minPts = 3)
+tsne_plot$Clusters <- dbscan_cluster$cluster
+
+
 tsne_plot %>% left_join(.,core_tight)  %>% 
   mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
-  ggplot(.,aes(x=X1,y=X2,colour=Tissue,shape=Origin)) + 
-  geom_point(size=4, alpha=0.8) + scale_shape_manual(values=c(0:20,35:50)) +
+  ggplot(.,aes(x=X1,y=X2)) + 
+  scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Eye tissue t-sne')) +
-  theme_Publication() + guides(colour=guide_legend(nrow=2), shape=guide_legend(nrow=2)) +
-  geom_density2d(alpha=0.3)
+  geom_point(size=15, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) +
+  geom_text(size=4, alpha=0.6, aes(label=Tissue)) + 
+  theme_Publication() + guides(colour=guide_legend(nrow=2), shape=guide_legend(nrow=2)) 
+ # geom_density2d(alpha=0.3)
+
+tsne_plot %>% left_join(., core_tight) %>% 
+  group_by(Clusters, Tissue) %>% summarise(Count=n(), `Origin` = paste(unique(Origin),collapse=', '))
+
 ```
 
 Plot pan-human tissue expression
@@ -102,7 +115,7 @@ library(dbscan)
 
 
 tsne_35 <- long_tsne_plot %>% filter(perplexity == '35')
-dbscan_cluster <- dbscan(long_tsne_plot %>% filter(perplexity=='35') %>% select(X1,X2), eps=2, minPts = 10)
+dbscan_cluster <- dbscan(long_tsne_plot %>% filter(perplexity=='35') %>% select(X1,X2), eps=2, minPts = 6)
 tsne_35$Clusters <- dbscan_cluster$cluster
 
 colourCount = length(unique(tsne_35$Clusters))
@@ -112,10 +125,13 @@ tsne_35 %>% left_join(., core_tight) %>%
   mutate(Study = study_accession) %>% 
   mutate(Tissue = ifelse(grepl('fibroblasts',Sub_Tissue),' Fibroblasts',Tissue)) %>% 
   ggplot() + 
-  ggtitle(paste0('Pan-human tissue t-sne')) +
+  ggtitle(paste0('Pan-human tissue t-sne, DBSCAN Clustering')) +
   geom_point(size=15, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) + 
   geom_point(aes(x=X1,y=X2,shape=Tissue),size=4, alpha=0.4) +
   scale_shape_manual(values=c(0:20,35:50)) +
   scale_colour_manual(values = getPalette(colourCount)) +
   theme_Publication() + guides(colour=guide_legend(nrow=6), shape=guide_legend(nrow=6))
+
+tsne_35 %>% left_join(., core_tight) %>% 
+  group_by(Clusters, Tissue) %>% summarise(Count=n(), `Sub Tissue` = paste(unique(Sub_Tissue),collapse=','))
 ```
