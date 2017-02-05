@@ -18,7 +18,7 @@ source('~/git/scripts/theme_Publication.R')
 
 Plot eye-only clustering
 ```{r, fig.width=3, fig.height=3}
-set.seed(23235)
+set.seed(23452345)
 eye_samples <- core_tight %>% 
   filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
@@ -27,7 +27,7 @@ eye_samples <- core_tight %>%
   .[['sample_accession']]
 
 eye_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_samples]
-perp=20
+perp=35
 tsne_out <- Rtsne(as.matrix(log2(t(eye_TPM)+1)),perplexity = perp, check_duplicates = FALSE, theta=0.0)
 tsne_plot <- data.frame(tsne_out$Y)
 tsne_plot$sample_accession <- colnames(eye_TPM)
@@ -35,7 +35,7 @@ tsne_plot$sample_accession <- colnames(eye_TPM)
 
 # dbscan
 
-dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=1, minPts = 3)
+dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=1.5, minPts = 3)
 tsne_plot$Clusters <- dbscan_cluster$cluster
 
 
@@ -44,7 +44,7 @@ tsne_plot %>% left_join(.,core_tight)  %>%
   ggplot(.,aes(x=X1,y=X2)) + 
   scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Eye tissue t-sne')) +
-  geom_point(size=15, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) +
+  geom_point(size=10, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) +
   geom_text(size=4, alpha=0.6, aes(label=Tissue)) + 
   theme_Publication() + guides(colour=guide_legend(nrow=2), shape=guide_legend(nrow=2)) 
  # geom_density2d(alpha=0.3)
