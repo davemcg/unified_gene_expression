@@ -43,6 +43,12 @@ tsne_plot$Clusters <- dbscan_cluster$cluster
 # create label points for each cluster
 cluster_centers <- tsne_plot %>% left_join(.,core_tight) %>% group_by(Clusters) %>%  summarise(C1=mean(X1),C2=mean(X2),Tissue=paste(unique(Tissue,col=',')))
 
+# find point closest to center
+tsne_plot %>% left_join(.,core_tight)  %>% 
+    mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
+    mutate(Cluster = as.factor(Clusters)) %>% left_join(.,cluster_centers) %>% mutate(Distance = (X1-C1)+(X2-C2)) %>% group_by(Cluster) %>% summarise(min(Distance)) %>% head()
+
+
 tsne_plot %>% left_join(.,core_tight)  %>% 
   mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
   mutate(Cluster = as.factor(Clusters)) %>% 
