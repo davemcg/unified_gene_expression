@@ -9,6 +9,8 @@ library(ggplot2)
 library(tidyverse)
 library(superheat)
 library(ggrepel)
+library(RColorBrewer)
+library(dbscan)
 source('~/git/scripts/theme_Publication.R')
 # https://github.com/stephaniehicks/qsmooth
 load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
@@ -43,10 +45,11 @@ cluster_centers <- tsne_plot %>% left_join(.,core_tight) %>% group_by(Clusters) 
 
 tsne_plot %>% left_join(.,core_tight)  %>% 
   mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
+  mutate(Cluster = as.factor(Clusters)) %>% 
   ggplot(.,aes(x=X1,y=X2)) + 
   scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Eye tissue t-sne')) +
-  geom_point(size=10, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) +
+  geom_point(size=10, alpha=0.2, aes(x=X1, y=X2, colour=Cluster)) +
   geom_point(size=4, alpha=0.6, aes(shape=Origin)) + 
   geom_label_repel(data=cluster_centers,aes(x=C1,y=C2,label=Tissue)) +
   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4)) 
