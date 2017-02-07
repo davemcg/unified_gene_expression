@@ -17,6 +17,9 @@ load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 source('~/git/scripts/theme_Publication.R')
+
+core_tight <- core_tight %>% select(-run_accession)
+core_tight <- core_tight[!duplicated(core_tight),]
 ```
 
 Plot eye-only clustering
@@ -27,9 +30,9 @@ eye_samples <- core_tight %>%
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(study_accession!='SRP012682') %>% 
   filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% 
-  .[['sample_accession']]
+  .[['sample_accession']] 
 
-eye_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_samples]
+eye_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,unique(eye_samples)]
 perp=35
 tsne_out <- Rtsne(as.matrix(log2(t(eye_TPM)+1)),perplexity = perp, check_duplicates = FALSE, theta=0.0)
 tsne_plot <- data.frame(tsne_out$Y)
@@ -41,23 +44,38 @@ dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=1.5, minPts = 3)
 tsne_plot$Clusters <- dbscan_cluster$cluster
 
 # create label points for each cluster
-cluster_centers <- tsne_plot %>% left_join(.,core_tight) %>% group_by(Clusters) %>%  summarise(C1=mean(X1),C2=mean(X2),Tissue=paste(unique(Tissue,col=',')))
+cluster_centers <- tsne_plot %>% 
+  left_join(.,core_tight) %>% group_by(Clusters) %>%
+  summarise(C1=mean(X1),C2=mean(X2),Tissue=paste(unique(Tissue,col=',')))
 
-# find point closest to center
-tsne_plot %>% left_join(.,core_tight)  %>% 
-    mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
-    mutate(Cluster = as.factor(Clusters)) %>% left_join(.,cluster_centers) %>% mutate(Distance = (X1-C1)+(X2-C2)) %>% group_by(Cluster) %>% summarise(min(Distance)) %>% head()
+# samples closest to center in each cluster
+center_samples <- tsne_plot %>% left_join(.,core_tight)  %>%
+    left_join(.,cluster_centers, by=c('Clusters')) %>% 
+    mutate(Distance = (X1-C1)+(X2-C2)) %>% 
+    group_by(Clusters) %>% 
+    slice(which.min(Distance)) %>% 
+    .[['sample_accession']]
 
-
-tsne_plot %>% left_join(.,core_tight)  %>% 
+# cluster stats
+cluster_stats <- tsne_plot %>% left_join(.,core_tight)  %>% 
   mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
   mutate(Cluster = as.factor(Clusters)) %>% 
-  ggplot(.,aes(x=X1,y=X2)) + 
+  group_by(Cluster) %>% 
+  summarise(Cluster_Tissues = paste(unique(Tissue), collapse=', '), Cluster_Counts = n())
+
+# set up for ggplot
+tsne_plot_prep <- tsne_plot %>% left_join(.,core_tight)  %>% 
+  mutate(Origin=factor(Origin, levels=c('Fetal Tissue', 'Adult Tissue', 'Cell Line'))) %>% 
+  mutate(Cluster = as.factor(Clusters)) %>% 
+  left_join(., cluster_stats, by=c('Cluster')) %>% 
+  mutate(Label = paste(Cluster, Cluster_Tissues,sep=': '))
+
+ggplot(tsne_plot_prep,aes(x=X1,y=X2)) + 
   scale_shape_manual(values=c(0:20,35:50)) +
   ggtitle(paste0('Eye tissue t-sne')) +
   geom_point(size=10, alpha=0.2, aes(x=X1, y=X2, colour=Cluster)) +
   geom_point(size=4, alpha=0.6, aes(shape=Origin)) + 
-  geom_label_repel(data=cluster_centers,aes(x=C1,y=C2,label=Tissue)) +
+  geom_text_repel(data=subset(tsne_plot_prep, sample_accession %in% center_samples), aes(label=Label)) +
   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4)) 
  # geom_density2d(alpha=0.3)
 
