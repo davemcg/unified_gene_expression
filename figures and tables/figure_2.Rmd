@@ -186,29 +186,3 @@ superheat(distances,
           grid.vline.col = "white")
 ```
 
-DBSCAN clustering
-```{r, fig.width=4, fig.height=4.5}
-library(dbscan)
-
-
-tsne_35 <- long_tsne_plot %>% filter(perplexity == '35')
-dbscan_cluster <- dbscan(long_tsne_plot %>% filter(perplexity=='35') %>% select(X1,X2), eps=2, minPts = 6)
-tsne_35$Clusters <- dbscan_cluster$cluster
-
-colourCount = length(unique(tsne_35$Clusters))
-getPalette = colorRampPalette(brewer.pal(9, "Set3"))
-
-tsne_35 %>% left_join(., core_tight) %>% 
-  mutate(Study = study_accession) %>% 
-  mutate(Tissue = ifelse(grepl('fibroblasts',Sub_Tissue),' Fibroblasts',Tissue)) %>% 
-  ggplot() + 
-  ggtitle(paste0('Pan-human tissue t-sne, DBSCAN Clustering')) +
-  geom_point(size=15, alpha=0.2, aes(x=X1, y=X2, colour=as.factor(Clusters))) + 
-  geom_point(aes(x=X1,y=X2,shape=Tissue),size=4, alpha=0.4) +
-  scale_shape_manual(values=c(0:20,35:50)) +
-  scale_colour_manual(values = getPalette(colourCount)) +
-  theme_Publication() + guides(colour=guide_legend(nrow=6), shape=guide_legend(nrow=6))
-
-tsne_35 %>% left_join(., core_tight) %>% 
-  group_by(Clusters, Tissue) %>% summarise(Count=n(), `Sub Tissue` = paste(unique(Sub_Tissue),collapse=','))
-```
