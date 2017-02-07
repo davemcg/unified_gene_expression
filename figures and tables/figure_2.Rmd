@@ -128,8 +128,12 @@ center_samples <- tsne_plot %>% left_join(.,core_tight)  %>%
 cluster_stats <- tsne_plot %>% left_join(.,core_tight)  %>% 
   mutate(Tissue = ifelse(grepl('fibroblasts',Sub_Tissue),' Fibroblasts',Tissue)) %>% 
   mutate(Cluster = as.factor(Cluster)) %>% 
+  group_by(Cluster, Tissue) %>% 
+  summarise(Cluster_Counts = n(), rTissue = ifelse(Cluster_Counts <= 3, '__', Tissue)) %>%  #Remove outlier tissues from label
   group_by(Cluster) %>% 
-  summarise(Cluster_Counts = n(), Cluster_Tissues = paste(unique(Tissue), collapse=', '))
+  summarise(Cluster_Tissues = paste(unique(rTissue), collapse=', ')) %>% 
+  mutate(Cluster_Tissues = gsub('__, ','',Cluster_Tissues))
+
 
 # set up for ggplot
 tsne_plot_prep <- tsne_plot %>% left_join(.,core_tight)  %>% 
@@ -144,7 +148,7 @@ ggplot(tsne_plot_prep,aes(x=X1,y=X2)) +
   ggtitle(paste0('Pan tissue t-sne')) +
   geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
   geom_point(size=1, alpha=0.2) + 
-  geom_label_repel(aes(label=Label), alpha=0.8, size=1.5, box.padding = unit(0.4, "lines"),force=1)  +
+  geom_label_repel(aes(label=Label), segment.alpha=0.5,alpha=1, size=1.5, box.padding = unit(0.4, "lines"),force=1.45)  +
   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4)) 
  # geom_density2d(alpha=0.3)
 
