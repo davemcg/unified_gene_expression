@@ -9,10 +9,10 @@ eye_rnaseq_experiments <- data.frame(eye_rnaseq_experiments
 eye_rnaseq_experiments %>% dplyr::select(sample_attribute) %>% sample_n(10)
 
 grab_attribute <- function(full_attribute, keyword, delimiter){
-  attribute_vector <- sapply(full_attribute, function(x) list(str_split(x, delimiter)[[1]]))
+  attribute_vector <- sapply(full_attribute, function(x) list(stringr::str_split(x, delimiter)[[1]]))
   attribute_vector
   attribute <- sapply(attribute_vector, function(x) grep(pattern = keyword,x = x,value = T))
-  sapply(attribute, function(x) ifelse(length(x)>0, strsplit(x,':')[[1]][2], NA))
+  sapply(attribute, function(x) ifelse(length(x)>0, base::strsplit(x,':')[[1]][2], NA))
   #attribute <- attribute_vector[grepl(x = attribute_vector, pattern = keyword)]
   #attribute
 }
