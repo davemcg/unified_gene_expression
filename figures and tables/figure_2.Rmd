@@ -18,7 +18,7 @@ load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rd
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 source('~/git/scripts/theme_Publication.R')
 
-core_tight <- core_tight %>% select(-run_accession)
+core_tight <- core_tight %>% dplyr::select(-run_accession)
 core_tight <- core_tight[!duplicated(core_tight),]
 core_tight$Tissue = trimws(core_tight$Tissue)
 ```
@@ -41,7 +41,7 @@ tsne_plot$sample_accession <- colnames(eye_TPM)
 
 
 # dbscan
-dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=1.5, minPts = 3)
+dbscan_cluster <- dbscan(tsne_plot %>% dplyr::select(X1,X2), eps=1.5, minPts = 3)
 tsne_plot$Cluster <- dbscan_cluster$cluster
 
 # create label points for each cluster
@@ -54,7 +54,7 @@ center_samples <- tsne_plot %>% left_join(.,core_tight)  %>%
     left_join(.,cluster_centers, by=c('Cluster')) %>% 
     mutate(Distance = (X1-C1)+(X2-C2)) %>% 
     group_by(Cluster) %>% 
-    slice(which.min(Distance)) %>% 
+    dplyr::slice(which.min(Distance)) %>% 
     .[['sample_accession']]
 
 # cluster stats
@@ -96,6 +96,7 @@ eye_and_gtex_samples <- core_tight %>%
   filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% 
+  filter(!sample_accession %in% c('SRS332999', 'SRS389531', 'SRS626623', 'SRS627133', 'SRS623923', 'SRS629483')) %>% 
   .[['sample_accession']]
 
 eye_and_gtex_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_and_gtex_samples]
@@ -106,7 +107,7 @@ tsne_plot$sample_accession <- colnames(eye_and_gtex_TPM)
 
 
 # dbscan
-dbscan_cluster <- dbscan(tsne_plot %>% select(X1,X2), eps=2)
+dbscan_cluster <- dbscan(tsne_plot %>% dplyr::select(X1,X2), eps=2)
 tsne_plot$Cluster <- dbscan_cluster$cluster
 
 # create label points for each cluster
@@ -121,7 +122,7 @@ center_samples <- tsne_plot %>% left_join(.,core_tight)  %>%
     left_join(.,cluster_centers, by=c('Cluster')) %>% 
     mutate(Distance = abs((X1-C1)-(X2-C2))) %>% 
     group_by(Cluster) %>% 
-    slice(which.min(Distance)) %>% 
+    dplyr::slice(which.min(Distance)) %>% 
     .[['sample_accession']]
 
 # cluster stats
@@ -148,12 +149,24 @@ ggplot(tsne_plot_prep,aes(x=X1,y=X2)) +
   ggtitle(paste0('Pan tissue t-sne')) +
   geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
   geom_point(size=1, alpha=0.2) + 
-  geom_label_repel(aes(label=Label), segment.alpha=0.5,alpha=1, size=1.5, box.padding = unit(0.2, "lines"),force=1.2)  +
+  geom_label_repel(aes(label=Label), segment.alpha=0.5,alpha=1, size=2.5, box.padding = unit(0.2, "lines"),force=1.2)  +
   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4)) 
  # geom_density2d(alpha=0.3)
 
 tsne_plot %>% left_join(., core_tight) %>% 
   group_by(Cluster, Tissue, Origin) %>% summarise(Count=n())
+
+################################
+# ID samples to remove upstream
+tsne_plot %>% left_join(., core_tight) %>% 
+  group_by(Cluster, Tissue, Origin) %>% summarise(Count=n()) %>% filter(Count<=3)
+# cluster 9, 1 adipose tissue
+# cluster 12, blood vessel, esophagus, and skin are outliers
+tsne_plot %>% left_join(.,core_tight) %>% filter(Cluster=='9', Tissue=='Adipose Tissue') # SRS332999
+tsne_plot %>% left_join(.,core_tight) %>% 
+  filter(Cluster=='12', Tissue %in% c('Blood Vessel', 'Esophagus', 'Skin')) %>% 
+  dplyr::select(sample_accession, Tissue, Sub_Tissue, Cluster) # SRS389531, SRS626623, SRS627133, SRS623923, SRS629483
+gtex_obvious_outliers <- c('SRS332999', 'SRS389531', 'SRS626623', 'SRS627133', 'SRS623923', 'SRS629483')
 ```
 
 Heatmap of t-sne distances for pan-tissue. Aggregated across 25 to 50 perplexities and at the tissue level
