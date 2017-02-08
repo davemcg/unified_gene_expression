@@ -5,29 +5,67 @@ output:
   html_notebook: default
 ---
 
-We begin by loading in the necessary packages and data. The *expr.retina.rpe* data frame contains the expression data (in counts) as well as the associated meta data for both the retina and RPE samples.
+We begin by loading in the the raw data, excluding files which fail QC due to either 
 
 ```{r, message = FALSE}
-source('~/Documents/git/scripts/theme_Publication.R')
+library(tximport)
 
-library(IHW)
-library(DESeq2)
-library(tidyverse)
-library(fdrtool)
-library(Rtsne)
-library(biomaRt)
-library(dplyr)
-library(topGO)
+source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+# low median count files removed, from 'analysis/QC_and_qsmooth.Rmd'
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
 
-load(file = "~/Documents/git/unified_gene_expression/data/counts_retina_rpe.Rdata")
 
-expr = t(expr.retina.rpe[, 1:(which(colnames(expr.retina.rpe) == "study_accession") - 1)])
-meta = expr.retina.rpe[, which(colnames(expr.retina.rpe) == "study_accession"):ncol(expr.retina.rpe)]
+# clean up metadata, removing run accession, and then removing dups. Some samples have multiple runs
+core_tight <- core_tight %>% dplyr::select(-run_accession)
+core_tight <- core_tight[!duplicated(core_tight),]
+core_tight$Tissue = trimws(core_tight$Tissue)
 
-dim(expr)
-dim(meta)
+# biowulf Salmon counts 
+working_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed/'
+# eyeMac
+working_dir <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed/'
+setwd(working_dir)
+files <- list.files(path=working_dir,recursive=TRUE,pattern='quant.sf')
 
-class(expr) <- "integer"
+# eye only samples, with outliers removed
+eye_samples <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>%  # low median count outliers
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(study_accession!='SRP012682') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>%  # retina in RPE
+  .[['sample_accession']] 
+
+# remove outlier files
+# and ENCODE
+# select representative subset of GTEx by matching number of tissues to eye tissues
+# and taking equal representation across the 22 GTEx tissues
+# there are 
+set.seed(123421)
+sample_number <- length(eye_samples) /
+  (core_tight %>% filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% filter(study_accession=='SRP012682') %>% dplyr::select(Tissue) %>% unique() %>% nrow())
+sample_number <- round(sample_number)
+gtex_sub_samples <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% # low median count outliers
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(!sample_accession %in% eye_samples) %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>%  # retina in RPE
+  filter(!sample_accession %in% c('SRS332999', 'SRS389531', 'SRS626623', 'SRS627133', 'SRS623923', 'SRS629483')) %>% # few gtex samples that outliers (in weird clusters)
+  group_by(Tissue) %>% 
+  sample_n(sample_number) %>% 
+  .[['sample_accession']]
+eye_and_gtex_samples <- c(eye_samples, gtex_sub_samples)
+
+# update files to import
+eye_and_gtex_files <- files[files %in% paste(eye_and_gtex_samples,'/quant.sf',sep='')]
+eye_files <- files[files %in% paste(eye_samples,'/quant.sf',sep='')]
+
+# Gene TX to name conversion
+load('~/git/unified_gene_expression/data/gencode_v25_annotation.Rdata')
+anno <- gencode_v25_annotation %>% dplyr::select(Transcript.ID, Gene.Name)
+
+# tximport to aggregate counts to gene level
+txi.eye_and_gtex <- tximport(eye_and_gtex_files, type = "salmon", tx2gene = anno, reader = read_tsv)
+txi.eye <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv)
 ```
 
 We first create a __DESeqDataSet__ object. We then perform the differential expression analysis (Retina vs. RPE), first with no batch correction. We find 434 significant genes ($p<0.05$).
@@ -67,7 +105,7 @@ out <- merge(stats,gene_counts,by="row.names")
 colnames(out)[1] <- 'Gene'
 
 # order by pvalue and add FC column
-out <- out %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::select(Gene:padj,FoldChange)
+out <- out %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::dplyr::select(Gene:padj,FoldChange)
 
 out.sig <- filter(out, padj < 0.05)
 
@@ -139,7 +177,7 @@ out.study.correct <- merge(stats,gene_counts,by="row.names")
 colnames(out.study.correct)[1] <- 'Gene'
 
 # order by pvalue and add FC column
-out.study.correct <- out.study.correct %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::select(Gene:padj,FoldChange)
+out.study.correct <- out.study.correct %>% arrange(pvalue) %>% mutate(FoldChange = 2^log2FoldChange) %>% dplyr::dplyr::select(Gene:padj,FoldChange)
 
 out.sig.study.correct <- filter(out.study.correct, padj < 0.05)
 
