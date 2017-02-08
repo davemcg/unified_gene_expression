@@ -77,7 +77,7 @@ ggplot(tsne_plot_prep,aes(x=X1,y=X2)) +
   ggtitle(paste0('Eye tissue t-sne')) +
   geom_point(size=10, alpha=0.2, aes(colour=Cluster)) +
   geom_point(size=4, alpha=0.6, aes(shape=Origin)) + 
-  geom_label_repel(aes(label=Label), alpha=0.8, size=2, box.padding = unit(0.4, "lines"))  +
+  geom_label_repel(aes(label=Label), alpha=0.8, size=4, box.padding = unit(0.4, "lines"))  +
   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4)) 
  # geom_density2d(alpha=0.3)
 
