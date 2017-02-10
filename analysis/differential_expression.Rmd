@@ -9,6 +9,8 @@ We begin by loading in the the raw data, excluding files which fail QC due to ei
 
 ```{r, message = FALSE}
 library(tximport)
+library(limma)
+library(edgeR)
 
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 # low median count files removed, from 'analysis/QC_and_qsmooth.Rmd'
@@ -64,9 +66,59 @@ load('~/git/unified_gene_expression/data/gencode_v25_annotation.Rdata')
 anno <- gencode_v25_annotation %>% dplyr::select(Transcript.ID, Gene.Name)
 
 # tximport to aggregate counts to gene level
-txi.eye_and_gtex <- tximport(eye_and_gtex_files, type = "salmon", tx2gene = anno, reader = read_tsv)
-txi.eye <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv)
+#txi.eye_and_gtex <- tximport(eye_and_gtex_files, type = "salmon", tx2gene = anno, reader = read_tsv)
+#txi.eye <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv)
+
+# metadata
+SampleTable_eye <- data.frame(eye_samples) %>% 
+  mutate(sample_accession = eye_samples) %>% 
+  select(sample_accession) %>% 
+  left_join(.,core_tight) %>% 
+  select(sample_accession, Tissue, Origin)
+
+
+#############
+#DESeq TOO DAMN SLOW
+# DESeq object creation for DE
+# dds_eye <- DESeqDataSetFromTximport(txi.eye, SampleTable, ~Tissue + Origin)
+
+# differential expression analysis
+#DESeq2Table <- DESeq(dds_eye)
+#DESeq2Res <- results(DESeq2Table, filterFun=ihw, addMLE=TRUE)
+#print(head(DESeq2Res))
+#print(table(DESeq2Res$padj < 0.05))
+###############
+
+# length scaled TPM for limma voom
+txi.eye.lsTPM <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
+
+# design matrix
+tissue_origin <- paste(SampleTable_eye$Tissue, SampleTable_eye$Origin,sep="_") %>% str_replace_all(., " ", ".") %>% factor()
+design <- model.matrix(~0 + tissue_origin)
+colnames(design) <- levels(tissue_origin)
+# limma voom
+y <- DGEList(txi.eye.lsTPM$counts)
+y <- calcNormFactors(y)
+v <- voom(y, design)
+fit <- lmFit(v)
+fit <- eBayes(fit)
+# set up comparisons
+cont.matrix <- makeContrasts(RPE.adult_vs_Retina.adult="RPE_Adult.Tissue-Retina_Adult.Tissue",
+                             RPE.cell_vs_Retina.cell="RPE_Cell.Line-Retina_Cell.Line",
+                             RPE.cell_vs_ESC.cell="RPE_Cell.Line-ESC_Cell.Line",
+                             Retina.cell_vs_ESC.cell="Retina_Cell.Line-ESC_Cell.Line",
+                             Cornea.adult_vs_RPE.adult="Cornea_Adult.Tissue-RPE_Adult.Tissue",
+                             Cornea.adult_vs_Retina.adult="Cornea_Adult.Tissue-Retina_Adult.Tissue",
+                             levels=design)
+fit2  <- contrasts.fit(fit, cont.matrix)
+fit2  <- eBayes(fit2)
+topTable(fit2,coef=2,adjust="fdr",number = 100000, p.value = 0.01, confint = TRUE) %>% rownames_to_column('Gene') %>% arrange(logFC)
 ```
+
+```{r, message = FALSE}
+ddsGA <- DESeqDataSetFromTximport(txi, SampleTable, ~GenoAge + Non_Exon_Alignment_Fraction)
+```
+
 
 We first create a __DESeqDataSet__ object. We then perform the differential expression analysis (Retina vs. RPE), first with no batch correction. We find 434 significant genes ($p<0.05$).
 
