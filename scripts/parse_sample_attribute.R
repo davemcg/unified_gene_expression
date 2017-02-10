@@ -71,7 +71,7 @@ e_mtab_4377 <- e_mtab_4377 %>% mutate(sample_attribute=paste(Characteristics.org
   mutate(Origin='Adult Tissue', Tissue='Retina') %>% dplyr::select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
 
 core_eye_info <- bind_rows(eye_rnaseq_experiments_extra, e_mtab_4377)
-core_eye_info <- core_eye_info %>% mutate(Sub_Tissue=ifelse(Origin=='Tissue',Tissue,paste0('fetal',Tissue)))
+core_eye_info <- core_eye_info %>% mutate(Sub_Tissue=paste(Tissue,Origin,sep='_'))
 
 ##################################
 # gtex
