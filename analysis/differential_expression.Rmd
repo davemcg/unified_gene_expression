@@ -85,6 +85,7 @@ SampleTable_eye <- data.frame(eye_samples) %>%
   mutate(sample_accession = eye_samples) %>% 
   select(sample_accession) %>% 
   left_join(.,core_tight) %>% 
+  mutate(Origin = ifelse(grepl('htert',sample_attribute,ignore.case = T),'hTERT Cell Line',Origin)) %>% 
   select(sample_accession, Tissue, Origin)
 ```
 DESeq2
@@ -109,28 +110,50 @@ txi.eye.lsTPM <- data.frame(txi.eye.lsTPM_full$counts)
 colnames(txi.eye.lsTPM) <- eye_sample
 ```
 
-QC steps, removing low count genes and doing qsmooth
+Function to do some QC steps and make density plots before and after doing:
+1. Remove low count genes
+2. qsmooth
+Returns qsmooth'ed set with low count genes removed
 ```{r, message = FALSE}
-# density plot, pre low gene count removal and qsmooth(?)
-gather_lST<-gather(txi.eye.lsTPM,sample_accession) %>% left_join(.,core_tight)
-ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
 
-# remove genes meeting one of two conditions:
-table(rowSums(txi.eye.lsTPM)<(ncol(txi.eye.lsTPM)))
-txi.eye.lsTPM_geneRemoval <- txi.eye.lsTPM[(rowSums(txi.eye.lsTPM)>ncol(txi.eye.lsTPM)),]
+QC <- function(data, metadata, qsmoothFactor){
+  # density plot, pre low gene count removal and qsmooth(?)
+  gather_lST<-gather(data, sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) + 
+          theme_Publication())
 
-# re-do density plot
-gather_lST<-gather(txi.eye.lsTPM_geneRemoval,sample_accession) %>% left_join(.,core_tight)
-ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
+  # remove genes meeting one of two conditions:
+  table(rowSums(data)<(ncol(data)))
+  data_geneRemoval <- data[(rowSums(data)>ncol(data)),]
 
-# qsmooth
-qs <- qsmooth(object = txi.eye.lsTPM_geneRemoval,groupFactor = as.factor(SampleTable_eye$Tissue))
-lsTPM_qsmooth <- qsmoothData(qs)
+  # re-do density plot
+  gather_lST<-gather(data_geneRemoval,sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+    geom_density() +
+    facet_wrap(~Tissue) +
+    theme_Publication())
 
-# re-redo density plot
-gather_lST<-gather(data.table(lsTPM_qsmooth),sample_accession) %>% left_join(.,core_tight)
-ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession))+geom_density()+facet_wrap(~Tissue)+coord_cartesian(ylim=c(0,0.5)) + theme_Publication()
+  # qsmooth
+  qs <- qsmooth(object = data_geneRemoval,groupFactor = as.factor(metadata[,qsmoothFactor]))
+  lsTPM_qsmooth <- qsmoothData(qs)
+
+  # re-redo density plot
+  gather_lST<-gather(data.table(lsTPM_qsmooth),sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) +
+          theme_Publication())
+  return(lsTPM_qsmooth)
+}
 ```
+
+QC eye samples
+```{r, message = FALSE}
+lsTPM_qsmooth <- QC(txi.eye.lsTPM, SampleTable_eye, 'Tissue')
+```
+
 
 Set up design matrix and do limma voom DE
 ```{r, message = FALSE}
@@ -144,11 +167,15 @@ y <- calcNormFactors(y)
 v <- voom(y, design)
 
 # set up comparisons
-cont.matrix <- makeContrasts(RPE.adult_vs_Retina.adult="RPE_Adult.Tissue-Retina_Adult.Tissue",
-                             RPE.adult_vs_RPE.cell="RPE_Adult.Tissue-RPE_Cell.Line",
-                             Retina.adult_vs_Retina.cell="Retina_Adult.Tissue-Retina_Cell.Line",
+cont.matrix <- makeContrasts(RPE.adult_vs_RPE.cell="RPE_Adult.Tissue-RPE_Cell.Line",
+                             RPE.adult_vs_RPE.fetal="RPE_Adult.Tissue-RPE_Fetal.Tissue",
+                             RPE.adult_vs_RPE.hTERT="RPE_Adult.Tissue-RPE_hTERT.Cell.Line",
+                             RPE.cell_vs_RPE.hTERT="RPE_Cell.Line-RPE_hTERT.Cell.Line",
+                             RPE.cell_vs_RPE.fetal="RPE_Cell.Line-RPE_Fetal.Tissue",
+                             RPE.adult_vs_Retina.adult="RPE_Adult.Tissue-Retina_Adult.Tissue",
                              RPE.cell_vs_Retina.cell="RPE_Cell.Line-Retina_Cell.Line",
                              RPE.cell_vs_ESC.cell="RPE_Cell.Line-ESC_Cell.Line",
+                             Retina.adult_vs_Retina.cell="Retina_Adult.Tissue-Retina_Cell.Line",
                              Retina.cell_vs_ESC.cell="Retina_Cell.Line-ESC_Cell.Line",
                              Cornea.adult_vs_RPE.adult="Cornea_Adult.Tissue-RPE_Adult.Tissue",
                              Cornea.adult_vs_Retina.adult="Cornea_Adult.Tissue-Retina_Adult.Tissue",
