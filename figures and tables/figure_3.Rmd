@@ -1,0 +1,118 @@
+---
+title: "Figure 3"
+output: html_notebook
+---
+
+
+Tabulate numbers for boxplot (table?)
+
+```{r, message = FALSE}
+comparisons <- colnames(efit$contrasts)
+#pretty up the comparison names
+comparisons_p <- gsub('\\.',' (', comparisons) %>% gsub('_v',') v',.) %>% gsub('s_','s ',.) %>% gsub('$',')',.)
+
+
+all_counts <- c()
+for (i in seq(1,length(comparisons_p))){
+  up_count<- topTable(efit, coef=i, adjust='fdr', number=30000) %>% filter(logFC > 1, adj.P.Val<0.05) %>% nrow()
+  up_count <- c(comparisons_p[i], '> 1', up_count)
+  down_count <- topTable(efit, coef=i, adjust='fdr', number=30000) %>% filter(logFC < -1, adj.P.Val<0.05) %>% nrow()
+  down_count <- c(comparisons_p[i], '< -1', down_count)
+  
+  all_counts <- rbind(all_counts, up_count, down_count)
+}
+row.names(all_counts) <- seq(1,nrow(all_counts))
+colnames(all_counts) <- c('VS','logFC','Count')
+all_counts <- all_counts %>% 
+  data.table() %>% 
+  separate(VS, c('Comparison','Reference'),' vs ') %>% 
+  select(Reference, Comparison, logFC, Count) %>% 
+  mutate(Count=as.numeric(Count)) %>% 
+  arrange(Reference, Comparison)
+
+all_counts
+
+ggplot(all_counts, aes(x=paste(Comparison, Reference, sep = ' vs '), y=Count, fill=logFC)) + 
+  geom_bar(stat='identity', position='dodge') + 
+  theme_Publication() + 
+  coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab('')
+  #theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+```
+
+Set up gene lists for UpSet visualization
+```{r, message=FALSE}
+library(UpSetR)
+
+fdr_005 <- list()
+for (i in seq(1,length(comparisons_p))){
+  genes <- topTable(efit, coef=i, adjust='fdr', number=30000, p.value=0.05) %>% rownames_to_column('Gene') %>% .[['Gene']] %>% list()
+  fdr_005[comparisons_p[i]] <- genes
+}
+
+comparisons_p
+```
+
+
+
+UpSet of Retina <-> RPE | Cell Line <-> Adult
+```{r, message = FALSE}
+upset(fromList(fdr_005[c(1,6,7,9)]))
+```
+
+Splitting by up / down regulated
+```{r, message=FALSE}
+fdr_005_up <- list()
+for (i in seq(1,length(comparisons_p))){
+  genes <- topTable(efit, coef=i, adjust='fdr', number=30000, p.value=0.05) %>% filter(logFC > 1) %>% rownames_to_column('Gene') %>% .[['Gene']] %>% list()
+  fdr_005_up[comparisons_p[i]] <- genes
+}
+fdr_005_down <- list()
+for (i in seq(1,length(comparisons_p))){
+  genes <- topTable(efit, coef=i, adjust='fdr', number=30000, p.value=0.05) %>% filter(logFC < -1) %>% rownames_to_column('Gene') %>% .[['Gene']] %>% list()
+  fdr_005_down[comparisons_p[i]] <- genes
+}
+
+```
+
+
+UpSet of Retina <-> RPE | Cell Line <-> Adult
+```{r, message = FALSE}
+upset(fromList(fdr_005_up[c(1,6,7,9)]),nintersects = NA, matrix.color = '#7fc97f', mainbar.y.max=1500)
+upset(fromList(fdr_005_down[c(1,6,7,9)]), nintersects = NA, matrix.color = '#ef3b2c',mainbar.y.max=1500)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+UpSet of RPE (cell-line (ESC), cell-line(hTERT), fetal and adult tissue)
+```{r, message = FALSE}
+upset(fromList(fdr_005[1:5]),order.by = 'freq')
+```
+
+UpSet of RPE <-> Cornea <-> Retina
+```{r, message = FALSE}
+upset(fromList(fdr_005[c(6,11,12)]))
+```
+
+UpSet of ESC <-> RPE <-> Retina Cell-Lines
+```{r, message = FALSE}
+upset(fromList(fdr_005[c(7,8,10)]))
+```
+
