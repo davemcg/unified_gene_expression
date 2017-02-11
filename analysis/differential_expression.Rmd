@@ -1,8 +1,8 @@
 ---
 title: "DE"
 output:
-  html_document: default
   html_notebook: default
+  html_document: default
 ---
 
 We begin by loading in the the raw data, excluding files which fail QC due to either 
@@ -155,7 +155,7 @@ lsTPM_qsmooth <- QC(txi.eye.lsTPM, SampleTable_eye, 'Tissue')
 ```
 
 
-Set up design matrix and do limma voom DE
+Set up design matrix for eye only tests and do limma voom DE
 ```{r, message = FALSE}
 # design matrix
 tissue_origin <- paste(SampleTable_eye$Tissue, SampleTable_eye$Origin,sep="_") %>% str_replace_all(., " ", ".") %>% factor()
@@ -190,8 +190,10 @@ efit <- eBayes(vfit)
 summary(decideTests(efit, lfc = 1, p.value = 0.05))
 ```
 
-Extract stats for comparisons
+How to extract stats for comparisons
 ```{r, message = FALSE}
+# coef is the number of the test
+# in this case: RPE.adult_vs_RPE.fetal
 topTable(efit,coef=2,adjust="fdr",number = 30000, p.value = 0.05, confint = TRUE) %>% rownames_to_column('Gene') %>% arrange(abs(logFC))
 ```
 
