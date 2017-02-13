@@ -198,3 +198,138 @@ topTable(efit,coef=2,adjust="fdr",number = 30000, p.value = 0.05, confint = TRUE
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+9.3 Several Groups
+The above approaches for two groups extend easily to any number of groups. Suppose that three RNA targets to be compared. Suppose that the three targets are called “RNA1”, “RNA2” and “RNA3” and that the column targets$Target indicates which one was hybridized to each array. An appropriate design matrix can be created using
+> f <- factor(targets$Target, levels=c("RNA1","RNA2","RNA3"))
+> design <- model.matrix(~0+f)
+> colnames(design) <- c("RNA1","RNA2","RNA3")
+
+To make all pair-wise comparisons between the three groups one could proceed
+> fit <- lmFit(eset, design)
+> contrast.matrix <- makeContrasts(RNA2-RNA1, RNA3-RNA2, RNA3-RNA1,
++                                  levels=design)
+> fit2 <- contrasts.fit(fit, contrast.matrix)
+> fit2 <- eBayes(fit2)
+
+A list of top genes for RNA2 versus RNA1 can be obtained from
+> topTable(fit2, coef=1, adjust="BH")
+
+The outcome of each hypothesis test can be assigned using
+> results <- decideTests(fit2)
+
+A Venn diagram showing numbers of genes significant in each comparison can be obtained from
+> vennDiagram(results)
+
+The statistic fit2$F and the corresponding fit2$F.p.value combine the three pair-wise compar- isons into one F -test. This is equivalent to a one-way ANOVA for each gene except that the residual mean squares have been moderated between genes. To find genes which vary between the three RNA targets in any way, look for genes with small p-values. To find the top 30 genes:
+> topTableF(fit2, number=30)
+
+```{r, message=FALSE}
+topTableF(efit,number=3000000, adjust.method = 'fdr', lfc = 1) %>% arrange(-RPE_Cell.Line_vs_RPE_Fetal.Tissue)
+```
+
+Make all pairwise comparisons
+```{r, message=FALSE}
+combn(unique(tissue_origin),2) %>% 
+  t() %>% 
+  data.table() %>% 
+  mutate(name=paste(V1,V2,sep='_vs_'),
+         contrast=paste(V1,V2,sep='-'),
+         all_makeContrasts=paste(name,'=\"',contrast,'\",\n',sep='')) %>% 
+  .[['all_makeContrasts']] %>% cat()
+```
+
+Now make contrast with all comparisons, copied from chunk above.
+```{r, message=F}
+
+cont.matrix_all <- makeContrasts(RPE_Cell.Line_vs_RPE_Fetal.Tissue="RPE_Cell.Line-RPE_Fetal.Tissue",
+ RPE_Cell.Line_vs_Retina_Adult.Tissue="RPE_Cell.Line-Retina_Adult.Tissue",
+ RPE_Cell.Line_vs_RPE_Adult.Tissue="RPE_Cell.Line-RPE_Adult.Tissue",
+ RPE_Cell.Line_vs_RPE_hTERT.Cell.Line="RPE_Cell.Line-RPE_hTERT.Cell.Line",
+ RPE_Cell.Line_vs_ESC_Cell.Line="RPE_Cell.Line-ESC_Cell.Line",
+ RPE_Cell.Line_vs_Retina_Cell.Line="RPE_Cell.Line-Retina_Cell.Line",
+ RPE_Cell.Line_vs_Cornea_Adult.Tissue="RPE_Cell.Line-Cornea_Adult.Tissue",
+ RPE_Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Cell.Line-Cornea_Fetal.Tissue",
+ RPE_Fetal.Tissue_vs_Retina_Adult.Tissue="RPE_Fetal.Tissue-Retina_Adult.Tissue",
+ RPE_Fetal.Tissue_vs_RPE_Adult.Tissue="RPE_Fetal.Tissue-RPE_Adult.Tissue",
+ RPE_Fetal.Tissue_vs_RPE_hTERT.Cell.Line="RPE_Fetal.Tissue-RPE_hTERT.Cell.Line",
+ RPE_Fetal.Tissue_vs_ESC_Cell.Line="RPE_Fetal.Tissue-ESC_Cell.Line",
+ RPE_Fetal.Tissue_vs_Retina_Cell.Line="RPE_Fetal.Tissue-Retina_Cell.Line",
+ RPE_Fetal.Tissue_vs_Cornea_Adult.Tissue="RPE_Fetal.Tissue-Cornea_Adult.Tissue",
+ RPE_Fetal.Tissue_vs_Cornea_Fetal.Tissue="RPE_Fetal.Tissue-Cornea_Fetal.Tissue",
+ Retina_Adult.Tissue_vs_RPE_Adult.Tissue="Retina_Adult.Tissue-RPE_Adult.Tissue",
+ Retina_Adult.Tissue_vs_RPE_hTERT.Cell.Line="Retina_Adult.Tissue-RPE_hTERT.Cell.Line",
+ Retina_Adult.Tissue_vs_ESC_Cell.Line="Retina_Adult.Tissue-ESC_Cell.Line",
+ Retina_Adult.Tissue_vs_Retina_Cell.Line="Retina_Adult.Tissue-Retina_Cell.Line",
+ Retina_Adult.Tissue_vs_Cornea_Adult.Tissue="Retina_Adult.Tissue-Cornea_Adult.Tissue",
+ Retina_Adult.Tissue_vs_Cornea_Fetal.Tissue="Retina_Adult.Tissue-Cornea_Fetal.Tissue",
+ RPE_Adult.Tissue_vs_RPE_hTERT.Cell.Line="RPE_Adult.Tissue-RPE_hTERT.Cell.Line",
+ RPE_Adult.Tissue_vs_ESC_Cell.Line="RPE_Adult.Tissue-ESC_Cell.Line",
+ RPE_Adult.Tissue_vs_Retina_Cell.Line="RPE_Adult.Tissue-Retina_Cell.Line",
+ RPE_Adult.Tissue_vs_Cornea_Adult.Tissue="RPE_Adult.Tissue-Cornea_Adult.Tissue",
+ RPE_Adult.Tissue_vs_Cornea_Fetal.Tissue="RPE_Adult.Tissue-Cornea_Fetal.Tissue",
+ RPE_hTERT.Cell.Line_vs_ESC_Cell.Line="RPE_hTERT.Cell.Line-ESC_Cell.Line",
+ RPE_hTERT.Cell.Line_vs_Retina_Cell.Line="RPE_hTERT.Cell.Line-Retina_Cell.Line",
+ RPE_hTERT.Cell.Line_vs_Cornea_Adult.Tissue="RPE_hTERT.Cell.Line-Cornea_Adult.Tissue",
+ RPE_hTERT.Cell.Line_vs_Cornea_Fetal.Tissue="RPE_hTERT.Cell.Line-Cornea_Fetal.Tissue",
+ ESC_Cell.Line_vs_Retina_Cell.Line="ESC_Cell.Line-Retina_Cell.Line",
+ ESC_Cell.Line_vs_Cornea_Adult.Tissue="ESC_Cell.Line-Cornea_Adult.Tissue",
+ ESC_Cell.Line_vs_Cornea_Fetal.Tissue="ESC_Cell.Line-Cornea_Fetal.Tissue",
+ Retina_Cell.Line_vs_Cornea_Adult.Tissue="Retina_Cell.Line-Cornea_Adult.Tissue",
+ Retina_Cell.Line_vs_Cornea_Fetal.Tissue="Retina_Cell.Line-Cornea_Fetal.Tissue",
+ Cornea_Adult.Tissue_vs_Cornea_Fetal.Tissue="Cornea_Adult.Tissue-Cornea_Fetal.Tissue", levels=design)
+```
+
+Get F statistic for ENTIRE group. Finding genes where are significantly DE in across all comparisons. Also requiring logFC to be >2 for at least one comparison. 
+```{r, message = FALSE}
+DE <- topTableF(efit,number=300000, adjust.method = 'fdr', lfc = 2) %>% filter(adj.P.Val<0.01) %>% data.frame()
+```
+
+Now kmeans cluster the DE genes into groups and visualize.
+First pick n groups
+```{r, message = FALSE}
+wss <- (nrow(DE[,1:36])-1)*sum(apply(DE[,1:36],2,var))
+for (i in 2:40) wss[i] <- sum(kmeans(DE[,1:36], 
+  	centers=i, iter.max = 1000)$withinss)
+plot(1:40, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares")
+
+
+kfit <- kmeans(DE[,1:36], 20) # 20 cluster solution
+# move k means cluster assignment over to DE data frame
+DE$cluster <- kfit$cluster
+
+cluster_num = 20
+comparisons_to_highlight <- DE %>% 
+  filter(cluster==cluster_num) %>% 
+  select(1:36) %>% 
+  summarise_each(funs(mean)) %>% t() %>% data.frame() %>% 
+  rownames_to_column('Comparison')  %>% 
+  `colnames<-`(c('Comparison', 'Mean')) %>% 
+  mutate(Decile=ntile(Mean,n=10), Size=0) %>% 
+  mutate(Points=ifelse((abs(Mean)>1 & Decile %in% c(1,2,9,10)),'red','white'))
+superheat(DE %>% filter(cluster==cluster_num) %>% select(1:36), 
+          pretty.order.rows = T, 
+          pretty.order.cols = T, 
+          bottom.label.text.angle  = 90,
+          bottom.label.text.size = 3,
+          bottom.label.size = 0.7,
+          #heat.pal = c("#386cb0","#7fc97f","white"),
+          yt = comparisons_to_highlight$Size,
+          yt.obs.col = comparisons_to_highlight$Points,
+          yt.num.ticks = 0, yt.axis.name = '', yt.plot.size = 0.05)
+
+# get correlations of each comparison
+DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
+```
