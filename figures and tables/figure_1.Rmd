@@ -117,5 +117,8 @@ superheat(heatmap_eye,
           bottom.label.text.angle = 90,
           bottom.label.size = 0.7,
           left.label.size = 1.5,
-          order.rows = order(c(4,2,3,1)))
+          order.rows = order(c(4,2,3,1)),
+          legend = FALSE,
+          grid.hline.col = 'white',
+          grid.vline.col = 'white')
 ```

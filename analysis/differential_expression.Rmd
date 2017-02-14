@@ -182,7 +182,7 @@ cont.matrix <- makeContrasts(RPE.adult_vs_RPE.cell="RPE_Adult.Tissue-RPE_Cell.Li
                              Retina.cell_vs_ESC.cell="Retina_Cell.Line-ESC_Cell.Line",
                              Cornea.adult_vs_RPE.adult="Cornea_Adult.Tissue-RPE_Adult.Tissue",
                              Cornea.adult_vs_Retina.adult="Cornea_Adult.Tissue-Retina_Adult.Tissue",
-                            #RPE_vs_Retina="(RPE_Adult.Tissue+RPE_Cell.Line)-(Retina_Adult.Tissue+Retina_Cell.Line)",
+                            #RPE_vs_Retina="(RPE_Adult.Tissue+RPE_Cell.Line)/2-(Retina_Adult.Tissue+Retina_Cell.Line)/2",
                              levels=design)
 
 # fitting time
