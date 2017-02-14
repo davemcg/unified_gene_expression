@@ -55,6 +55,7 @@ core_eye_info %>% group_by(sample_accession) %>% summarise(count=n())
 core_eye_info %>% group_by(Tissue) %>% summarise(count=n()) %>% arrange(-count)
 ```
 
+Stats pre-QC filtering
 ```{r}
 core_eye_info %>% 
   mutate(`Study Accession`=ifelse(grepl(x = study_accession, pattern = 'E_MTAB_4377'),'E-MTAB-4377', study_accession)) %>% 
@@ -73,4 +74,48 @@ core_eye_info %>%
     facet_wrap(~Origin) + 
     theme_Publication() +
     theme(axis.text.x=element_text(angle = 90, hjust = 0))
+```
+
+Stats post-QC filtering. Samples removed for two reasons: low median counts (which lead from low sequencing depth and/or poor alignment rate) and mis-matched clustering (tissue mis-labeling or errors in acquisition).
+```{r}
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
+library(superheat)
+core_tight <- core_tight %>% dplyr::select(-run_accession)
+core_tight <- core_tight[!duplicated(core_tight),]
+core_tight$Tissue = trimws(core_tight$Tissue)
+core_eye_info_QC <- core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  filter(study_accession!='SRP012682') %>% 
+  filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123'))
+
+
+core_eye_info_QC %>% 
+  mutate(`Study Accession`=ifelse(grepl(x = study_accession, pattern = 'E_MTAB_4377'),'E-MTAB-4377', study_accession)) %>% 
+  group_by(`Study Accession`, Tissue, Origin) %>% 
+  summarise(`Sample Count`=n()) %>% 
+  ggplot(.,aes(y=`Sample Count`, x=`Study Accession`,fill=Tissue)) + 
+    geom_bar(stat='identity',position='dodge') +
+    theme_Publication() +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0))
+```
+
+```{r, fig.width=2,fig.height=1.5}
+#heatmap of tissue vs origin
+heatmap_eye <- core_eye_info_QC %>% 
+  mutate(Origin = ifelse(grepl('htert',sample_attribute,ignore.case = T),'hTERT Cell Line',Origin)) %>%
+  group_by(Tissue, Origin) %>% 
+  summarise(Count=n()) %>% 
+  spread(Tissue,Count,fill=0) %>% 
+  data.frame()
+row.names(heatmap_eye)<-heatmap_eye$Origin
+heatmap_eye <- heatmap_eye[,2:5]
+heatmap_eye <- heatmap_eye %>% select(Cornea, Retina, RPE, ESC)
+superheat(heatmap_eye, 
+          heat.col.scheme = 'purple', 
+          X.text = as.matrix(heatmap_eye),
+          bottom.label.text.angle = 90,
+          bottom.label.size = 0.7,
+          left.label.size = 1.5,
+          order.rows = order(c(4,2,3,1)))
 ```
