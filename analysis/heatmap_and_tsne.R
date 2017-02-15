@@ -1,16 +1,20 @@
 #### t-sne (PCA-like)
 library(Rtsne)
-load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 
+core_tight <- core_tight %>% dplyr::select(-run_accession)
+core_tight <- core_tight[!duplicated(core_tight),]
+core_tight$Tissue = trimws(core_tight$Tissue)
 
 tsne_list = list()
 eye_and_gtex_samples <- core_tight %>% 
-  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% 
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>% 
+  filter(Origin %in% c('Tissue','Adult Tissue')) %>% 
   .[['sample_accession']]
-eye_and_gtex_TPM <- lengthScaledTPM_qsmooth_highExp_remove_lowGenes[,eye_and_gtex_samples]
+eye_and_gtex_TPM <- lengthScaledTPM_processed[,eye_and_gtex_samples]
 for (n in seq(5,50)) {
   set.seed(935489)
   tsne_out <- Rtsne(as.matrix(log2(t(eye_and_gtex_TPM )+1)),perplexity = n, check_duplicates = FALSE, theta=0.0 )
@@ -20,5 +24,6 @@ for (n in seq(5,50)) {
   tsne_plot$perplexity <- n
   tsne_list[[n]]<-tsne_plot
 }
+
 long_tsne_plot <- do.call(rbind, tsne_list)
 save(long_tsne_plot, file='~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
