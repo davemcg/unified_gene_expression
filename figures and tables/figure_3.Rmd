@@ -2,7 +2,30 @@
 title: "Figure 3"
 output: html_notebook
 ---
+```{r,message = FALSE}
+library(broom)
+library(UpSetR)
+```
 
+Overall counts up and down for the six tests
+```{r, message = FALSE}
+test1_summary <- summary(decideTests(test1, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '1')
+test2_summary <- summary(decideTests(test2, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test3_summary <- summary(decideTests(test3, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test4_summary <- summary(decideTests(test4, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test5_summary <- summary(decideTests(test5, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test6_summary <- summary(decideTests(test6, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+
+
+
+
+cornea_vs_retina <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Cornea.adult_vs_Retina.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
+cornea_vs_rpe <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Cornea.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
+retina_vs_rpe <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Retina.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
+
+upset(fromList(list(cornea_vs_retina, cornea_vs_rpe, retina_vs_rpe)))
+
+```
 
 Tabulate numbers for boxplot (table?)
 
@@ -10,7 +33,6 @@ Tabulate numbers for boxplot (table?)
 comparisons <- colnames(efit$contrasts)
 #pretty up the comparison names
 comparisons_p <- gsub('\\.',' (', comparisons) %>% gsub('_v',') v',.) %>% gsub('s_','s ',.) %>% gsub('$',')',.)
-
 
 all_counts <- c()
 for (i in seq(1,length(comparisons_p))){
@@ -78,6 +100,7 @@ for (i in seq(1,length(comparisons_p))){
 
 
 UpSet of Retina <-> RPE | Cell Line <-> Adult
+Up and Down regualted in separate plots
 ```{r, message = FALSE}
 upset(fromList(fdr_005_up[c(1,6,7,9)]),nintersects = NA, matrix.color = '#7fc97f', mainbar.y.max=1500)
 upset(fromList(fdr_005_down[c(1,6,7,9)]), nintersects = NA, matrix.color = '#ef3b2c',mainbar.y.max=1500)
