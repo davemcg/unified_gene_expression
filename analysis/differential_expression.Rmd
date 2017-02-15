@@ -17,7 +17,7 @@ library(superheat)
 source('~/git/scripts/theme_Publication.R')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 # low median count files removed, from 'analysis/QC_and_qsmooth.Rmd'
-load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
+load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
 ```
 
 Clean up metadata, removing run accession, and then removing dups. Some samples have multiple runs
@@ -40,7 +40,7 @@ files <- list.files(path=working_dir,recursive=TRUE,pattern='quant.sf')
 Eye only samples, with outliers removed, from previous analyses
 ```{r, message = FALSE}
 eye_samples <- core_tight %>% 
-  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>%  # low median count outliers
+  filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>%  # low median count outliers
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(study_accession!='SRP012682') %>% 
   filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>%  # retina in RPE
@@ -51,10 +51,10 @@ Now remove outlier files and ENCODE files. Then select representative subset of 
 ```{r, message = FALSE} 
 set.seed(123421)
 sample_number <- length(eye_samples) /
-  (core_tight %>% filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% filter(study_accession=='SRP012682') %>% dplyr::select(Tissue) %>% unique() %>% nrow())
+  (core_tight %>% filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% filter(study_accession=='SRP012682') %>% dplyr::select(Tissue) %>% unique() %>% nrow())
 sample_number <- round(sample_number)
 gtex_sub_samples <- core_tight %>% 
-  filter(sample_accession %in% colnames(lengthScaledTPM_qsmooth_highExp_remove_lowGenes)) %>% # low median count outliers
+  filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% # low median count outliers
   filter(!Tissue %in% 'ENCODE Cell Line') %>% 
   filter(!sample_accession %in% eye_samples) %>% 
   filter(!sample_accession %in% c('SRS523795','SRS360124','SRS360123')) %>%  # retina in RPE
@@ -87,7 +87,6 @@ SampleTable_eye <- data.frame(eye_samples) %>%
   mutate(sample_accession = eye_samples) %>% 
   select(sample_accession) %>% 
   left_join(.,core_tight) %>% 
-  mutate(Origin = ifelse(grepl('htert',sample_attribute,ignore.case = T),'hTERT Cell Line',Origin)) %>% 
   select(sample_accession, Tissue, Origin)
 ```
 DESeq2
@@ -115,8 +114,9 @@ colnames(txi.eye.lsTPM) <- eye_samples
 
 Function to do some QC steps and make density plots before and after doing:
 1. Remove low count genes
-2. qsmooth
-Returns qsmooth'ed set with low count genes removed
+2. scale for library sizes
+3. qsmooth
+Returns qsmooth'ed set with low count genes removed and scaled for library sizes
 ```{r, message = FALSE}
 
 QC <- function(data, metadata, qsmoothFactor){
@@ -125,29 +125,50 @@ QC <- function(data, metadata, qsmoothFactor){
   print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
           geom_density() +
           facet_wrap(~Tissue) + 
+          ggtitle('No normalization') +
           theme_Publication())
-
-  # remove genes meeting one of two conditions:
+  
+  # remove genes with an average lsTPM < 1
   table(rowSums(data)<(ncol(data)))
   data_geneRemoval <- data[(rowSums(data)>ncol(data)),]
-
+  
   # re-do density plot
   gather_lST<-gather(data_geneRemoval,sample_accession) %>% left_join(.,metadata)
   print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
-    geom_density() +
-    facet_wrap(~Tissue) +
-    theme_Publication())
-
-  # qsmooth
-  qs <- qsmooth(object = data_geneRemoval,groupFactor = as.factor(metadata[,qsmoothFactor]))
-  lsTPM_qsmooth <- qsmoothData(qs)
-
+          geom_density() +
+          facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal') +
+          theme_Publication())
+  
+  # library size normalize
+  norm <- DGEList(data_geneRemoval)
+  norm <- calcNormFactors(norm)
+  tpm <- norm$counts
+  correction <- norm$samples %>% data.frame() %>% .[['norm.factors']]
+  lsTPM_librarySize <- tpm %*% diag(correction)
+  colnames(lsTPM_librarySize) <- colnames(data_geneRemoval)
+  
   # re-redo density plot
+  gather_lST<-gather(data.table(lsTPM_librarySize),sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal AND library size normalize') +
+          theme_Publication())
+  
+  # qsmooth
+  qs <- qsmooth(object = lsTPM_librarySize,groupFactor = as.factor(metadata[,qsmoothFactor]))
+  lsTPM_qsmooth <- qsmoothData(qs)
+  
+  # re-re-redo density plot
   gather_lST<-gather(data.table(lsTPM_qsmooth),sample_accession) %>% left_join(.,metadata)
   print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
           geom_density() +
           facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal AND library size normalize AND qsmooth') +
           theme_Publication())
+
+  
   return(lsTPM_qsmooth)
 }
 ```
@@ -161,74 +182,96 @@ Set up design matrix for eye only tests and do voom normalization
 ```{r, message = FALSE}
 # design matrix
 tissue_origin <- paste(SampleTable_eye$Tissue, SampleTable_eye$Origin,sep="_") %>% str_replace_all(., " ", ".") %>% factor()
+tissue_origin %>% sort() %>% unique()
 design <- model.matrix(~0 + tissue_origin)
 colnames(design) <- levels(tissue_origin)
 # bring in lsTPM valuesvoom
 y <- DGEList(lsTPM_qsmooth)
-#y <- calcNormFactors(y)
+y <- calcNormFactors(y)
 v <- voom(y, design)
 vfit <- lmFit(v, design)
+
+# tiny function to update contrasts, return topTableF results for multi-comparison
+# one-way anova, essentially
+limma_voom_test <- function(lmFit_object, your_custom_contrast_matrix){
+  vfit.cont <- contrasts.fit(lmFit_object, contrasts = your_custom_contrast_matrix)
+  efit <- eBayes(vfit.cont)
+  print(summary(decideTests(efit, lfc = 1, p.value = 0.05, adjust.method = 'fdr')))
+  efit
+  #topTableF(efit, number=30000, adjust.method='fdr')
+}
+
+# same, but return topTable (for two sample tests)
+limma_voom_test_twoSample <- function(lmFit_object, your_custom_contrast_matrix){
+  vfit.cont <- contrasts.fit(lmFit_object, contrasts = your_custom_contrast_matrix)
+  efit <- eBayes(vfit.cont)
+  print(summary(decideTests(efit, lfc = 1, p.value = 0.05, adjust.method = 'fdr')))
+  topTable(efit, number=30000, adjust.method='fdr')
+}
 ```
 
 Six DE tests:
 1. Cornea vs Retina vs RPE (all adult)
-2. ESC vs RPE vs Retina (all cell lines, non hTERT)
+2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 3. Adult RPE vs Fetal RPE vs Cell Line RPE
-4. hTERT RPE vs Cell Line RPE
-5. Adult Retina vs Cell Line Retina
-6. Adult Cornea vs Fetal Cornea
+4. immortalized RPE vs Stem Cell Line RPE
+5. Adult Retina vs Stem Cell Line Retina
+6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
 
-Test 1
+Test 1 (Cornea vs Retina vs RPE (all adult))
 ```{r, message = FALSE}
 cont.matrix <- makeContrasts(Cornea.adult_vs_Retina.adult='Cornea_Adult.Tissue-Retina_Adult.Tissue',
                              Cornea.adult_vs_RPE.adult='Cornea_Adult.Tissue-RPE_Adult.Tissue',
                              Retina.adult_vs_RPE.adult='Retina_Adult.Tissue-RPE_Adult.Tissue', 
                              levels=design)
-# fitting time
-vfit.cont <- contrasts.fit(vfit, contrasts=cont.matrix)
-efit <- eBayes(vfit.cont)
-# DE
-DE <- topTableF(efit,number=30000, adjust.method = 'fdr', lfc = 1) %>% filter(adj.P.Val<0.05) %>% data.frame()
+test1 <- limma_voom_test(vfit, cont.matrix)
 ```
 
-
+Test 2 (ESC vs RPE vs Retina (all cell lines, non immortalized))
 ```{r, message = FALSE}
-# set up comparisons
-cont.matrix <- makeContrasts(RPE.adult_vs_RPE.cell="RPE_Adult.Tissue-RPE_Cell.Line",
-                             RPE.adult_vs_RPE.fetal="RPE_Adult.Tissue-RPE_Fetal.Tissue",
-                             
-                             RPE.cell_vs_RPE.hTERT="RPE_Cell.Line-RPE_hTERT.Cell.Line",
-                             RPE.cell_vs_RPE.fetal="RPE_Cell.Line-RPE_Fetal.Tissue",
-                             RPE.adult_vs_Retina.adult="RPE_Adult.Tissue-Retina_Adult.Tissue",
-                             
-                             
-                             RPE.cell_vs_Retina.cell="RPE_Cell.Line-Retina_Cell.Line",
-                             RPE.cell_vs_ESC.cell="RPE_Cell.Line-ESC_Cell.Line",
-                             Retina.adult_vs_Retina.cell="Retina_Adult.Tissue-Retina_Cell.Line",
-                             Retina.cell_vs_ESC.cell="Retina_Cell.Line-ESC_Cell.Line",
-                             Cornea.adult_vs_RPE.adult="Cornea_Adult.Tissue-RPE_Adult.Tissue",
-                             Cornea.adult_vs_Retina.adult="Cornea_Adult.Tissue-Retina_Adult.Tissue",
-                            #RPE_vs_Retina="(RPE_Adult.Tissue+RPE_Cell.Line)/2-(Retina_Adult.Tissue+Retina_Cell.Line)/2",
-                             levels=design)
-
-# fitting time
-vfit <- lmFit(v, design)
-vfit <- contrasts.fit(vfit, contrasts=cont.matrix)
-efit <- eBayes(vfit)
-# summary, with log FC > 1 and adj.p<0.05
-summary(decideTests(efit, lfc = 1, p.value = 0.05, adjust.method = 'fdr'))
+cont.matrix <- makeContrasts(ESC.stemcell_vs_Retina.stemcell='ESC_Stem.Cell.Line-Retina_Stem.Cell.Line',
+                             ESC.stemcell_vs_RPE.stemcell='ESC_Stem.Cell.Line-RPE_Stem.Cell.Line',
+                             Retina.stemcell_vs_RPE.stemcell='Retina_Stem.Cell.Line-RPE_Stem.Cell.Line', 
+                             levels=design) 
+test2 <- limma_voom_test(vfit, cont.matrix)
 ```
 
-How to extract stats for comparisons
+Test 3 (Adult RPE vs Fetal RPE vs Stem Cell Line RPE)
 ```{r, message = FALSE}
-# coef is the number of the test
-# in this case: RPE.adult_vs_RPE.fetal
-topTable(efit,coef=2,adjust="fdr",number = 30000, p.value = 0.05, confint = TRUE) %>% rownames_to_column('Gene') %>% arrange(abs(logFC))
+cont.matrix <- makeContrasts(RPE.stemcell_vs_RPE.fetal='RPE_Stem.Cell.Line-RPE_Fetal.Tissue',
+                             RPE.stemcell_vs_RPE.adult='RPE_Stem.Cell.Line-RPE_Adult.Tissue',
+                             RPE.fetal_vs_RPE.adult='RPE_Fetal.Tissue-RPE_Adult.Tissue', 
+                             levels=design) 
+test3 <- limma_voom_test(vfit, cont.matrix)
+```
+
+Test 4 (Stem Cell Line RPE vs immortalized cell line RPE)
+```{r, message = FALSE}
+cont.matrix <- makeContrasts(RPE.stemcell_vs_RPE.immortalizedcell="RPE_Stem.Cell.Line-RPE_Cell.Line",
+                             levels=design) 
+test4 <- limma_voom_test_twoSample(vfit, cont.matrix)
+```
+
+Test 5 (Adult Retina vs Stem Cell Line Retina)
+```{r, message = FALSE}
+cont.matrix <- makeContrasts(Retina.adult_vs_Retina.stemcell="Retina_Adult.Tissue-Retina_Stem.Cell.Line",
+                             levels=design) 
+test5 <- limma_voom_test_twoSample(vfit, cont.matrix)
+```
+
+Test 6 (Adult Cornea vs Fetal Cornea vs Cell Line Cornea)
+```{r, message = FALSE}
+cont.matrix <- makeContrasts(Cornea.adult_vs_Cornea.fetal="Cornea_Adult.Tissue-Cornea_Fetal.Tissue",
+                             Cornea.adult_vs_Cornea.immortalizedcell='Cornea_Adult.Tissue-Cornea_Cell.Line',
+                             Cornea.fetal_vs_Cornea.immortalizedcell='Cornea_Fetal.Tissue-Cornea_Cell.Line',
+                             levels=design) 
+test6 <- limma_voom_test(vfit, cont.matrix)
 ```
 
 
-
+##############################
 Make all pairwise comparisons
+##############################
 ```{r, message=FALSE}
 combn(unique(tissue_origin),2) %>% 
   t() %>% 
@@ -242,42 +285,51 @@ combn(unique(tissue_origin),2) %>%
 Now make contrast with all comparisons, copied from chunk above.
 ```{r, message=F}
 
-cont.matrix_all <- makeContrasts(RPE_Cell.Line_vs_RPE_Fetal.Tissue="RPE_Cell.Line-RPE_Fetal.Tissue",
- RPE_Cell.Line_vs_Retina_Adult.Tissue="RPE_Cell.Line-Retina_Adult.Tissue",
- RPE_Cell.Line_vs_RPE_Adult.Tissue="RPE_Cell.Line-RPE_Adult.Tissue",
- RPE_Cell.Line_vs_RPE_hTERT.Cell.Line="RPE_Cell.Line-RPE_hTERT.Cell.Line",
- RPE_Cell.Line_vs_ESC_Cell.Line="RPE_Cell.Line-ESC_Cell.Line",
- RPE_Cell.Line_vs_Retina_Cell.Line="RPE_Cell.Line-Retina_Cell.Line",
- RPE_Cell.Line_vs_Cornea_Adult.Tissue="RPE_Cell.Line-Cornea_Adult.Tissue",
- RPE_Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Cell.Line-Cornea_Fetal.Tissue",
+cont.matrix_all <- makeContrasts(RPE_Stem.Cell.Line_vs_RPE_Fetal.Tissue="RPE_Stem.Cell.Line-RPE_Fetal.Tissue",
+ RPE_Stem.Cell.Line_vs_Retina_Adult.Tissue="RPE_Stem.Cell.Line-Retina_Adult.Tissue",
+ RPE_Stem.Cell.Line_vs_RPE_Adult.Tissue="RPE_Stem.Cell.Line-RPE_Adult.Tissue",
+ RPE_Stem.Cell.Line_vs_RPE_Cell.Line="RPE_Stem.Cell.Line-RPE_Cell.Line",
+ RPE_Stem.Cell.Line_vs_ESC_Stem.Cell.Line="RPE_Stem.Cell.Line-ESC_Stem.Cell.Line",
+ RPE_Stem.Cell.Line_vs_Retina_Stem.Cell.Line="RPE_Stem.Cell.Line-Retina_Stem.Cell.Line",
+ RPE_Stem.Cell.Line_vs_Cornea_Adult.Tissue="RPE_Stem.Cell.Line-Cornea_Adult.Tissue",
+ RPE_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Stem.Cell.Line-Cornea_Fetal.Tissue",
+ RPE_Stem.Cell.Line_vs_Cornea_Cell.Line="RPE_Stem.Cell.Line-Cornea_Cell.Line",
  RPE_Fetal.Tissue_vs_Retina_Adult.Tissue="RPE_Fetal.Tissue-Retina_Adult.Tissue",
  RPE_Fetal.Tissue_vs_RPE_Adult.Tissue="RPE_Fetal.Tissue-RPE_Adult.Tissue",
- RPE_Fetal.Tissue_vs_RPE_hTERT.Cell.Line="RPE_Fetal.Tissue-RPE_hTERT.Cell.Line",
- RPE_Fetal.Tissue_vs_ESC_Cell.Line="RPE_Fetal.Tissue-ESC_Cell.Line",
- RPE_Fetal.Tissue_vs_Retina_Cell.Line="RPE_Fetal.Tissue-Retina_Cell.Line",
+ RPE_Fetal.Tissue_vs_RPE_Cell.Line="RPE_Fetal.Tissue-RPE_Cell.Line",
+ RPE_Fetal.Tissue_vs_ESC_Stem.Cell.Line="RPE_Fetal.Tissue-ESC_Stem.Cell.Line",
+ RPE_Fetal.Tissue_vs_Retina_Stem.Cell.Line="RPE_Fetal.Tissue-Retina_Stem.Cell.Line",
  RPE_Fetal.Tissue_vs_Cornea_Adult.Tissue="RPE_Fetal.Tissue-Cornea_Adult.Tissue",
  RPE_Fetal.Tissue_vs_Cornea_Fetal.Tissue="RPE_Fetal.Tissue-Cornea_Fetal.Tissue",
+ RPE_Fetal.Tissue_vs_Cornea_Cell.Line="RPE_Fetal.Tissue-Cornea_Cell.Line",
  Retina_Adult.Tissue_vs_RPE_Adult.Tissue="Retina_Adult.Tissue-RPE_Adult.Tissue",
- Retina_Adult.Tissue_vs_RPE_hTERT.Cell.Line="Retina_Adult.Tissue-RPE_hTERT.Cell.Line",
- Retina_Adult.Tissue_vs_ESC_Cell.Line="Retina_Adult.Tissue-ESC_Cell.Line",
- Retina_Adult.Tissue_vs_Retina_Cell.Line="Retina_Adult.Tissue-Retina_Cell.Line",
+ Retina_Adult.Tissue_vs_RPE_Cell.Line="Retina_Adult.Tissue-RPE_Cell.Line",
+ Retina_Adult.Tissue_vs_ESC_Stem.Cell.Line="Retina_Adult.Tissue-ESC_Stem.Cell.Line",
+ Retina_Adult.Tissue_vs_Retina_Stem.Cell.Line="Retina_Adult.Tissue-Retina_Stem.Cell.Line",
  Retina_Adult.Tissue_vs_Cornea_Adult.Tissue="Retina_Adult.Tissue-Cornea_Adult.Tissue",
  Retina_Adult.Tissue_vs_Cornea_Fetal.Tissue="Retina_Adult.Tissue-Cornea_Fetal.Tissue",
- RPE_Adult.Tissue_vs_RPE_hTERT.Cell.Line="RPE_Adult.Tissue-RPE_hTERT.Cell.Line",
- RPE_Adult.Tissue_vs_ESC_Cell.Line="RPE_Adult.Tissue-ESC_Cell.Line",
- RPE_Adult.Tissue_vs_Retina_Cell.Line="RPE_Adult.Tissue-Retina_Cell.Line",
+ Retina_Adult.Tissue_vs_Cornea_Cell.Line="Retina_Adult.Tissue-Cornea_Cell.Line",
+ RPE_Adult.Tissue_vs_RPE_Cell.Line="RPE_Adult.Tissue-RPE_Cell.Line",
+ RPE_Adult.Tissue_vs_ESC_Stem.Cell.Line="RPE_Adult.Tissue-ESC_Stem.Cell.Line",
+ RPE_Adult.Tissue_vs_Retina_Stem.Cell.Line="RPE_Adult.Tissue-Retina_Stem.Cell.Line",
  RPE_Adult.Tissue_vs_Cornea_Adult.Tissue="RPE_Adult.Tissue-Cornea_Adult.Tissue",
  RPE_Adult.Tissue_vs_Cornea_Fetal.Tissue="RPE_Adult.Tissue-Cornea_Fetal.Tissue",
- RPE_hTERT.Cell.Line_vs_ESC_Cell.Line="RPE_hTERT.Cell.Line-ESC_Cell.Line",
- RPE_hTERT.Cell.Line_vs_Retina_Cell.Line="RPE_hTERT.Cell.Line-Retina_Cell.Line",
- RPE_hTERT.Cell.Line_vs_Cornea_Adult.Tissue="RPE_hTERT.Cell.Line-Cornea_Adult.Tissue",
- RPE_hTERT.Cell.Line_vs_Cornea_Fetal.Tissue="RPE_hTERT.Cell.Line-Cornea_Fetal.Tissue",
- ESC_Cell.Line_vs_Retina_Cell.Line="ESC_Cell.Line-Retina_Cell.Line",
- ESC_Cell.Line_vs_Cornea_Adult.Tissue="ESC_Cell.Line-Cornea_Adult.Tissue",
- ESC_Cell.Line_vs_Cornea_Fetal.Tissue="ESC_Cell.Line-Cornea_Fetal.Tissue",
- Retina_Cell.Line_vs_Cornea_Adult.Tissue="Retina_Cell.Line-Cornea_Adult.Tissue",
- Retina_Cell.Line_vs_Cornea_Fetal.Tissue="Retina_Cell.Line-Cornea_Fetal.Tissue",
- Cornea_Adult.Tissue_vs_Cornea_Fetal.Tissue="Cornea_Adult.Tissue-Cornea_Fetal.Tissue", levels=design)
+ RPE_Adult.Tissue_vs_Cornea_Cell.Line="RPE_Adult.Tissue-Cornea_Cell.Line",
+ RPE_Cell.Line_vs_ESC_Stem.Cell.Line="RPE_Cell.Line-ESC_Stem.Cell.Line",
+ RPE_Cell.Line_vs_Retina_Stem.Cell.Line="RPE_Cell.Line-Retina_Stem.Cell.Line",
+ RPE_Cell.Line_vs_Cornea_Adult.Tissue="RPE_Cell.Line-Cornea_Adult.Tissue",
+ RPE_Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Cell.Line-Cornea_Fetal.Tissue",
+ RPE_Cell.Line_vs_Cornea_Cell.Line="RPE_Cell.Line-Cornea_Cell.Line",
+ ESC_Stem.Cell.Line_vs_Retina_Stem.Cell.Line="ESC_Stem.Cell.Line-Retina_Stem.Cell.Line",
+ ESC_Stem.Cell.Line_vs_Cornea_Adult.Tissue="ESC_Stem.Cell.Line-Cornea_Adult.Tissue",
+ ESC_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="ESC_Stem.Cell.Line-Cornea_Fetal.Tissue",
+ ESC_Stem.Cell.Line_vs_Cornea_Cell.Line="ESC_Stem.Cell.Line-Cornea_Cell.Line",
+ Retina_Stem.Cell.Line_vs_Cornea_Adult.Tissue="Retina_Stem.Cell.Line-Cornea_Adult.Tissue",
+ Retina_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="Retina_Stem.Cell.Line-Cornea_Fetal.Tissue",
+ Retina_Stem.Cell.Line_vs_Cornea_Cell.Line="Retina_Stem.Cell.Line-Cornea_Cell.Line",
+ Cornea_Adult.Tissue_vs_Cornea_Fetal.Tissue="Cornea_Adult.Tissue-Cornea_Fetal.Tissue",
+ Cornea_Adult.Tissue_vs_Cornea_Cell.Line="Cornea_Adult.Tissue-Cornea_Cell.Line",
+ Cornea_Fetal.Tissue_vs_Cornea_Cell.Line="Cornea_Fetal.Tissue-Cornea_Cell.Line", levels=design)
 ```
 
 Redo fit with new contrasts matrix and get F statistic for ENTIRE group. Finding genes where are significantly DE in across all comparisons. Also requiring logFC to be >2 for at least one comparison. 
@@ -285,8 +337,12 @@ Redo fit with new contrasts matrix and get F statistic for ENTIRE group. Finding
 vfit_all <- lmFit(v, design)
 vfit_all <- contrasts.fit(vfit_all, contrasts=cont.matrix_all)
 efit_all <- eBayes(vfit_all)
-DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% filter(adj.P.Val<0.01) %>% data.frame()
+DE_45 <- topTableF(efit_all,number=300000, adjust.method = 'fdr') %>% data.frame()
 ```
+
+######################################
+Ignore below for now
+######################################
 
 Now kmeans cluster the DE genes into groups. First use scree plot to pick n.
 ```{r, message = FALSE}
