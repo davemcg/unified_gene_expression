@@ -157,25 +157,51 @@ QC eye samples
 lsTPM_qsmooth <- QC(txi.eye.lsTPM, SampleTable_eye, 'Tissue')
 ```
 
-
-Set up design matrix for eye only tests and do limma voom DE
+Set up design matrix for eye only tests and do voom normalization
 ```{r, message = FALSE}
 # design matrix
 tissue_origin <- paste(SampleTable_eye$Tissue, SampleTable_eye$Origin,sep="_") %>% str_replace_all(., " ", ".") %>% factor()
 design <- model.matrix(~0 + tissue_origin)
 colnames(design) <- levels(tissue_origin)
-# limma voom
+# bring in lsTPM valuesvoom
 y <- DGEList(lsTPM_qsmooth)
-y <- calcNormFactors(y)
+#y <- calcNormFactors(y)
 v <- voom(y, design)
+vfit <- lmFit(v, design)
+```
 
+Six DE tests:
+1. Cornea vs Retina vs RPE (all adult)
+2. ESC vs RPE vs Retina (all cell lines, non hTERT)
+3. Adult RPE vs Fetal RPE vs Cell Line RPE
+4. hTERT RPE vs Cell Line RPE
+5. Adult Retina vs Cell Line Retina
+6. Adult Cornea vs Fetal Cornea
+
+Test 1
+```{r, message = FALSE}
+cont.matrix <- makeContrasts(Cornea.adult_vs_Retina.adult='Cornea_Adult.Tissue-Retina_Adult.Tissue',
+                             Cornea.adult_vs_RPE.adult='Cornea_Adult.Tissue-RPE_Adult.Tissue',
+                             Retina.adult_vs_RPE.adult='Retina_Adult.Tissue-RPE_Adult.Tissue', 
+                             levels=design)
+# fitting time
+vfit.cont <- contrasts.fit(vfit, contrasts=cont.matrix)
+efit <- eBayes(vfit.cont)
+# DE
+DE <- topTableF(efit,number=30000, adjust.method = 'fdr', lfc = 1) %>% filter(adj.P.Val<0.05) %>% data.frame()
+```
+
+
+```{r, message = FALSE}
 # set up comparisons
 cont.matrix <- makeContrasts(RPE.adult_vs_RPE.cell="RPE_Adult.Tissue-RPE_Cell.Line",
                              RPE.adult_vs_RPE.fetal="RPE_Adult.Tissue-RPE_Fetal.Tissue",
-                             RPE.adult_vs_RPE.hTERT="RPE_Adult.Tissue-RPE_hTERT.Cell.Line",
+                             
                              RPE.cell_vs_RPE.hTERT="RPE_Cell.Line-RPE_hTERT.Cell.Line",
                              RPE.cell_vs_RPE.fetal="RPE_Cell.Line-RPE_Fetal.Tissue",
                              RPE.adult_vs_Retina.adult="RPE_Adult.Tissue-Retina_Adult.Tissue",
+                             
+                             
                              RPE.cell_vs_Retina.cell="RPE_Cell.Line-Retina_Cell.Line",
                              RPE.cell_vs_ESC.cell="RPE_Cell.Line-ESC_Cell.Line",
                              Retina.adult_vs_Retina.cell="Retina_Adult.Tissue-Retina_Cell.Line",
