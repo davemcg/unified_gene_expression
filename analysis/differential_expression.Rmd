@@ -201,13 +201,6 @@ limma_voom_test <- function(lmFit_object, your_custom_contrast_matrix){
   #topTableF(efit, number=30000, adjust.method='fdr')
 }
 
-# same, but return topTable (for two sample tests)
-limma_voom_test_twoSample <- function(lmFit_object, your_custom_contrast_matrix){
-  vfit.cont <- contrasts.fit(lmFit_object, contrasts = your_custom_contrast_matrix)
-  efit <- eBayes(vfit.cont)
-  print(summary(decideTests(efit, lfc = 1, p.value = 0.05, adjust.method = 'fdr')))
-  topTable(efit, number=30000, adjust.method='fdr')
-}
 ```
 
 Six DE tests:
@@ -249,14 +242,14 @@ Test 4 (Stem Cell Line RPE vs immortalized cell line RPE)
 ```{r, message = FALSE}
 cont.matrix <- makeContrasts(RPE.stemcell_vs_RPE.immortalizedcell="RPE_Stem.Cell.Line-RPE_Cell.Line",
                              levels=design) 
-test4 <- limma_voom_test_twoSample(vfit, cont.matrix)
+test4 <- limma_voom_test(vfit, cont.matrix)
 ```
 
 Test 5 (Adult Retina vs Stem Cell Line Retina)
 ```{r, message = FALSE}
 cont.matrix <- makeContrasts(Retina.adult_vs_Retina.stemcell="Retina_Adult.Tissue-Retina_Stem.Cell.Line",
                              levels=design) 
-test5 <- limma_voom_test_twoSample(vfit, cont.matrix)
+test5 <- limma_voom_test(vfit, cont.matrix)
 ```
 
 Test 6 (Adult Cornea vs Fetal Cornea vs Cell Line Cornea)
