@@ -3,8 +3,7 @@ library(tidyverse)
 library(stringr)
 
 load('~/git/unified_gene_expression/data/eye_rnaSeq_experiments_sraMetadata.Rdata')
-eye_rnaseq_experiments <- data.frame(eye_rnaseq_experiments
-                                     )
+eye_rnaseq_experiments <- data.frame(eye_rnaseq_experiments)
 # get a feel for how insanely messy this is
 eye_rnaseq_experiments %>% dplyr::select(sample_attribute) %>% sample_n(10)
 
@@ -53,7 +52,8 @@ eye_rnaseq_experiments_extra <-
   mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'lid', ignore.case=T),'EyeLid',Tissue)) %>%
   mutate(Tissue=ifelse(grepl(x = sample_attribute, pattern = 'noggin', ignore.case=T),'Lens', Tissue)) %>% 
   mutate(Tissue=ifelse(is.na(Tissue),'ESC',Tissue)) %>% 
-  mutate(Origin=ifelse(grepl('TERT|ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Cell Line','Adult Tissue')) %>%
+  mutate(Origin=ifelse(grepl('ATCC|hES|ESC|H9|hfRPE|H1|hiPS2|BG01|HSF1', sample_attribute),'Stem Cell Line','Adult Tissue')) %>%
+  mutate(Origin=ifelse(grepl('TERT|telemorase|SV40', sample_attribute), 'Cell Line', Origin)) %>% 
   mutate(Origin=ifelse(grepl('fetal|fetus|wk',sample_attribute, ignore.case = T),'Fetal Tissue',Origin)) %>% 
   dplyr::select(study_accession, study_title, study_abstract, sample_accession, run_accession, sample_attribute, Tissue, Origin)
 
