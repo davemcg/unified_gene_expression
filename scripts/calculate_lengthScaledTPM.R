@@ -2,13 +2,9 @@ source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 # low median count files removed, from 'analysis/QC_and_qsmooth.Rmd'
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_01_27_2017.Rdata')
 
-library(IHW)
-library(DESeq2)
 library(tidyverse)
-library(fdrtool)
-library(Rtsne)
-library(biomaRt)
 library(stringr)
+library(edgeR)
 
 # clean up metadata, removing run accession, and then removing dups. Some samples have multiple runs
 core_tight <- core_tight %>% dplyr::select(-run_accession)
@@ -17,6 +13,8 @@ core_tight$Tissue = trimws(core_tight$Tissue)
 
 # biowulf Salmon counts 
 working_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed/'
+# eyeMac
+working_dir <- '/Volumes/ThunderBay/PROJECTS/mcgaughey/unified_gene_expression/salmon_counts_bootstrap50_txUsed/'
 setwd(working_dir)
 files <- list.files(path=working_dir,recursive=TRUE,pattern='quant.sf')
 
@@ -46,12 +44,73 @@ txi.eye_and_gtex.lsTPM <- tximport(eye_and_gtex_files, type = "salmon", tx2gene 
 counts <- data.frame(txi.eye_and_gtex.counts$counts)
 names <- sapply(eye_and_gtex_files, function(x) strsplit(x,"\\/")[[1]][1])
 colnames(counts) <- names
-save(counts, file='~/git/unified_gene_expression/data/eye_and_gtex_counts_2017_02.Rdata')
+#save(counts, file='~/git/unified_gene_expression/data/eye_and_gtex_counts_2017_02.Rdata')
 
 # output lsTPM
 lengthScaledTPM <- data.frame(txi.eye_and_gtex.lsTPM$counts)
 names <- sapply(eye_and_gtex_files, function(x) strsplit(x,"\\/")[[1]][1])
 colnames(lengthScaledTPM) <- names
-save(lengthScaledTPM, file='~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex_2017_02.Rdata')
+#save(lengthScaledTPM, file='~/git/unified_gene_expression/data/lengthScaledTPM_eye_gtex_2017_02.Rdata')
+
+# low gene count and qsmooth
+
+QC <- function(data, metadata, qsmoothFactor){
+  # density plot, pre low gene count removal and qsmooth(?)
+  gather_lST<-gather(data, sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) + 
+          ggtitle('No normalization') +
+          theme_Publication())
+  
+  # remove genes with an average lsTPM < 1
+  table(rowSums(data)<(ncol(data)))
+  data_geneRemoval <- data[(rowSums(data)>ncol(data)),]
+  
+  # re-do density plot
+  gather_lST<-gather(data_geneRemoval,sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal') +
+          theme_Publication())
+  
+  # library size normalize
+  norm <- DGEList(data_geneRemoval)
+  norm <- calcNormFactors(norm)
+  tpm <- norm$counts
+  correction <- norm$samples %>% data.frame() %>% .[['norm.factors']]
+  lsTPM_librarySize <- tpm %*% diag(correction)
+  colnames(lsTPM_librarySize) <- colnames(data_geneRemoval)
+  
+  # re-redo density plot
+  gather_lST<-gather(data.table(lsTPM_librarySize),sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal AND library size normalize') +
+          theme_Publication())
+  
+  # qsmooth
+  qs <- qsmooth(object = lsTPM_librarySize,groupFactor = as.factor(metadata[,qsmoothFactor]))
+  lsTPM_qsmooth <- qsmoothData(qs)
+  
+  # re-re-redo density plot
+  gather_lST<-gather(data.table(lsTPM_qsmooth),sample_accession) %>% left_join(.,metadata)
+  print(ggplot(gather_lST,aes(x=log2(value+1),group=sample_accession)) +
+          geom_density() +
+          facet_wrap(~Tissue) +
+          ggtitle('Low gene count removal AND library size normalize AND qsmooth') +
+          theme_Publication())
+
+  
+  return(lsTPM_qsmooth)
+}
+metadata <- core_tight %>% filter(sample_accession %in% colnames(lengthScaledTPM))
+metadata <- metadata[match(colnames(lengthScaledTPM), metadata$sample_accession),]
+lengthScaledTPM_processed <- QC(lengthScaledTPM, metadata, 'Tissue')
+
+save(lengthScaledTPM_processed, file='~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
+
 
 
