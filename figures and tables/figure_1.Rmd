@@ -103,21 +103,22 @@ core_eye_info_QC %>%
 ```{r, fig.width=2,fig.height=1.5}
 #heatmap of tissue vs origin
 heatmap_eye <- core_eye_info_QC %>% 
-  mutate(Origin = ifelse(grepl('htert',sample_attribute,ignore.case = T),'hTERT Cell Line',Origin)) %>%
   group_by(Tissue, Origin) %>% 
   summarise(Count=n()) %>% 
   spread(Tissue,Count,fill=0) %>% 
   data.frame()
-row.names(heatmap_eye)<-heatmap_eye$Origin
+row_order <- c('Cell Line', 'Stem Cell Line', 'Fetal Tissue', 'Adult Tissue')
+heatmap_eye <- heatmap_eye[match(row_order, heatmap_eye$Origin),]
+row.names(heatmap_eye) <- heatmap_eye$Origin
 heatmap_eye <- heatmap_eye[,2:5]
 heatmap_eye <- heatmap_eye %>% select(Cornea, Retina, RPE, ESC)
 superheat(heatmap_eye, 
           heat.col.scheme = 'purple', 
           X.text = as.matrix(heatmap_eye),
           bottom.label.text.angle = 90,
-          bottom.label.size = 0.7,
-          left.label.size = 1.5,
-          order.rows = order(c(4,2,3,1)),
+          bottom.label.size = 0.6,
+          left.label.size = 1.0,
+          pretty.order.rows = FALSE,
           legend = FALSE,
           grid.hline.col = 'white',
           grid.vline.col = 'white')
