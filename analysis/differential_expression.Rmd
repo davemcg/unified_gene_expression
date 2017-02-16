@@ -331,6 +331,7 @@ vfit_all <- lmFit(v, design)
 vfit_all <- contrasts.fit(vfit_all, contrasts=cont.matrix_all)
 efit_all <- eBayes(vfit_all)
 DE_45 <- topTableF(efit_all,number=300000, adjust.method = 'fdr') %>% data.frame()
+save(efit_all, file='~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
 ```
 
 ######################################
