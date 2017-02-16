@@ -34,7 +34,7 @@ GO_enrichment <- function(genes, background_genes, ontology) {
   hgOver <- hyperGTest(params.over)
   result.over <- summary(hgOver)
   result.over <- result.over %>% 
-    mutate(`Expected Count`=ExpCount, `P value (FDR)`= p.adjust(Pvalue,method='fdr'), `P value` = Pvalue, `Odds Ratio`=OddsRatio) %>% 
-    dplyr::select(GOBPID, `P value`, `P value (FDR)`, `Odds Ratio`, `Expected Count`, Count, Size, Term)
+    mutate(`Expected Count`=ExpCount, `P value (FDR)`= p.adjust(Pvalue,method='fdr'), `P value` = Pvalue, `Odds Ratio` = OddsRatio) %>% 
+    dplyr::select(1, `P value`, `P value (FDR)`, `Odds Ratio`, `Expected Count`, Count, Size, Term)
   return(result.over)
 }
