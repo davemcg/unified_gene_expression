@@ -5,27 +5,70 @@ output: html_notebook
 ```{r,message = FALSE}
 library(broom)
 library(UpSetR)
+library(tidyverse)
 ```
 
 Overall counts up and down for the six tests
 ```{r, message = FALSE}
-test1_summary <- summary(decideTests(test1, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '1')
-test2_summary <- summary(decideTests(test2, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
-test3_summary <- summary(decideTests(test3, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
-test4_summary <- summary(decideTests(test4, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
-test5_summary <- summary(decideTests(test5, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
-test6_summary <- summary(decideTests(test6, lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test1_summary <- summary(decideTests(big_six[[1]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '1')
+test2_summary <- summary(decideTests(big_six[[2]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
+test3_summary <- summary(decideTests(big_six[[3]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '3')
+test4_summary <- summary(decideTests(big_six[[4]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '4')
+test5_summary <- summary(decideTests(big_six[[5]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '5')
+test6_summary <- summary(decideTests(big_six[[6]], lfc = 1, p.value = 0.05, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '6')
 
+test_summaries <- rbind(test1_summary,test2_summary,test3_summary,test4_summary,test5_summary,test6_summary)
+colnames(test_summaries) <- c('LogFC','Comparison','Count','Comparison Set')
 
+test_summaries <- test_summaries %>% 
+  filter(LogFC!=0) %>% 
+  select(-`Comparison Set`) %>% 
+  spread(Comparison, Count) %>% t() %>% 
+  data.frame() %>% 
+  rownames_to_column('Comparisons') %>% 
+  slice(-1) %>% 
+  separate(Comparisons, c('Comparison','Base'), sep='_vs_') %>% 
+  mutate(Comparison=gsub('\\.',' (',Comparison), Comparison=gsub('$',')', Comparison), Comparison=gsub('cell',' cell', Comparison)) %>% 
+  mutate(Base=gsub('\\.',' (',Base), Base=gsub('$',')', Base), Base=gsub('cell',' cell', Base))
 
+colnames(test_summaries)<- c('Comparison','Reference', 'LogFC < -1', 'LogFC > 1')
 
-cornea_vs_retina <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Cornea.adult_vs_Retina.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
-cornea_vs_rpe <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Cornea.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
-retina_vs_rpe <- topTableF(test1, number = 30000, adjust.method = 'fdr') %>% rownames_to_column('Gene') %>% filter(abs(Retina.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% .[['Gene']]
+test_summaries %>% mutate(`Test #`=c(1,1,1,2,2,2,3,3,3,4,5,6,6,6))
 
-upset(fromList(list(cornea_vs_retina, cornea_vs_rpe, retina_vs_rpe)))
+set_maker <- function(a,b,c){
+  a_set <- setdiff(a,c(b,c))
+  b_set <- setdiff(b,c(a,c))
+  c_set <- setdiff(c,c(a,b))
+  abc <- Reduce(intersect,list(a,b,c))
+  ab <- setdiff(intersect(a,b),c)
+  ac <- setdiff(intersect(a,c),b)
+  bc <- setdiff(intersect(b,c),a)
+  list(a_set,b_set,c_set,ab,ac,bc,abc)
+}
+
+for (i in 1:6){print(colnames(big_six[[i]]))}
+
+cornea_vs_retina <- topTableF(big_six[[1]], number = 30000, adjust.method = 'fdr') %>% 
+  rownames_to_column('Gene') %>% 
+  filter(abs(Cornea.adult_vs_Retina.adult) > 1, adj.P.Val < 0.05) %>% 
+  .[['Gene']]
+cornea_vs_rpe <- topTableF(big_six[[1]], number = 30000, adjust.method = 'fdr') %>% 
+  rownames_to_column('Gene') %>% 
+  filter(abs(Cornea.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% 
+  .[['Gene']]
+retina_vs_rpe <- topTableF(big_six[[1]], number = 30000, adjust.method = 'fdr') %>% 
+  rownames_to_column('Gene') %>% 
+  filter(abs(Retina.adult_vs_RPE.adult) > 1, adj.P.Val < 0.05) %>% 
+  .[['Gene']]
+
+all_sets <- set_maker(cornea_vs_retina, cornea_vs_rpe,retina_vs_rpe)
+all_sets[[1]]
+
+test_comps <- list('Cornea vs Retina' = cornea_vs_retina, 'Cornea vs RPE' = cornea_vs_rpe, 'Retina vs RPE' = retina_vs_rpe)
+upset(fromList(test_comps))
 
 ```
+
 
 Tabulate numbers for boxplot (table?)
 
