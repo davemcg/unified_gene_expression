@@ -7,10 +7,11 @@ library(broom)
 library(UpSetR)
 library(tidyverse)
 library(limma)
+library(DT)
 load('~/git/unified_gene_expression/data/big_six_DE.Rdata')
 load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
 source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
-
+source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
 # for GO enrichement
 background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
 ```
@@ -40,7 +41,11 @@ test_summaries <- test_summaries %>%
 
 colnames(test_summaries)<- c('Comparison','Reference', 'LogFC < -1', 'LogFC > 1')
 
-test_summaries %>% mutate(`Test #`=c(1,1,1,2,2,2,3,3,3,4,5,6,6,6)) %>% mutate(Comparison = paste(Comparison, Reference, sep = ' vs ')) %>% dplyr::select(`Test #`, Comparison, `LogFC < -1`, `LogFC > 1`)
+test_summaries %>% 
+  mutate(`Test #`=c(1,1,1,2,2,2,3,3,3,4,5,6,6,6)) %>% 
+  mutate(Comparison = paste(Comparison, Reference, sep = ' vs ')) %>% 
+  dplyr::select(`Test #`, Comparison, `LogFC < -1`, `LogFC > 1`) %>% 
+  DT::datatable(options = list(pageLength = 20)) 
 ```
 
 Function to pull different sets out
@@ -59,6 +64,7 @@ set_maker <- function(a,b,c){
 
 Function to return gene list that are abs(logFC) > 1 and adj.P.Val < 0.05 for the different contrasts
 ```{r, messag= FALSE}
+# all sig
 contrast_gene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
   print(vector_of_comparisons)
@@ -73,23 +79,29 @@ contrast_gene_lists <- function(limma_data){
     }
   out_list
 }
-
+# just up vs 'control' (left side of contrast)
 contrast_UPgene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
     stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
+    if(nrow(stats)==0){
+      out_list[vector_of_comparisons[i]] <- list('')
+      next}
     stats_cut_down <- stats[stats[,'logFC'] > 1,]
     out_list[vector_of_comparisons[i]] <- list(row.names(stats_cut_down))
     }
   out_list
 }
-
+# just down
 contrast_DOWNgene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
     stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
+    if(nrow(stats)==0){
+      out_list[vector_of_comparisons[i]] <- list('')
+      next}
     stats_cut_down <- stats[stats[,'logFC'] < -1,]
     out_list[vector_of_comparisons[i]] <- list(row.names(stats_cut_down))
     }
@@ -98,6 +110,7 @@ contrast_DOWNgene_lists <- function(limma_data){
 ```
 
 Six DE tests:
+
 1. Cornea vs Retina vs RPE (all adult)
 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 3. Adult RPE vs Fetal RPE vs Cell Line RPE
@@ -105,7 +118,8 @@ Six DE tests:
 5. Adult Retina vs Stem Cell Line Retina
 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
 
-1. Cornea vs Retina vs RPE (all adult)
+
+# 1. Cornea vs Retina vs RPE (all adult)
 ```{r, message = FALSE, fig.width=2, fig.height=1.5}
 
 colnames(big_six[[1]])
@@ -121,17 +135,17 @@ test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
 test1_comps <- list('Cornea vs Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
                    'Cornea vs RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
                    'Retina vs RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
-upset(fromList(test1_comps),mainbar.y.max = 2000, keep.order = T, sets.bar.color = 'blue', matrix.color = 'blue', main.bar.color = 'blue')
+upset(fromList(test1_comps),mainbar.y.max = 2000, keep.order = T, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4')
 
 
 test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
 test1_comps <- list('Cornea vs Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
                    'Cornea vs RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
                    'Retina vs RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
-upset(fromList(test1_comps),mainbar.y.max = 2000, keep.order = T, sets.bar.color = 'red', matrix.color = 'red', main.bar.color = 'red')
+upset(fromList(test1_comps),mainbar.y.max = 2000, keep.order = T, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62')
 ```
 
-1. GO enrichment. Retina against RPE
+GO enrichment. Retina against RPE
 ```{r, message = FALSE}
 # Retina vs RPE unique, up (RPE >> retina for gene expression)
 test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
@@ -139,15 +153,17 @@ sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
 retina_rpe_GO_up <- GO_enrichment(sets$c, background_genes ,'BP')
+retina_rpe_GO_up %>% DT::datatable(options = list(pageLength = 20)) 
 # Retina vs RPE unique, down (retina >> RPE)
 test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
 sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
 retina_rpe_GO_down <- GO_enrichment(sets$c, background_genes ,'BP')
+retina_rpe_GO_down %>%  DT::datatable(options = list(pageLength = 20)) 
 ```
 
-1. Go enrichment. Cornea against Retina/RPE
+Go enrichment. Cornea against Retina/RPE
 ```{r, message = FALSE}
 # cornea vs RPE and retina (RPE and retina >> cornea)
 test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
@@ -156,6 +172,7 @@ sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
 length(sets$ab)
 cornea_vs_retina_rpe_GO_up <- GO_enrichment(sets$ab, background_genes ,'BP')
+cornea_vs_retina_rpe_GO_up %>%  DT::datatable(options = list(pageLength = 20)) 
 # cornea vs RPE and retina (RPE and retina << cornea)
 test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
 sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
@@ -163,10 +180,11 @@ sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
 length(sets$ab)
 cornea_vs_retina_rpe_GO_down <- GO_enrichment(sets$ab, background_genes ,'BP')
+cornea_vs_retina_rpe_GO_down %>%  DT::datatable(options = list(pageLength = 20)) 
 
 ```
 
-2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
+# 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 ```{r, message = FALSE, fig.width=2, fig.height=1.5}
 colnames(big_six[[2]])
 test2_contrast_genes <- contrast_gene_lists(big_six[[2]])
@@ -179,18 +197,71 @@ test2_contrast_genes <- contrast_UPgene_lists(big_six[[2]])
 test2_comps <- list('ESC vs Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
                    'ESC vs RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
                    'Retina (stem cell) vs RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-upset(fromList(test2_comps), keep.order = T, mainbar.y.max = 1700, sets.bar.color = 'blue', matrix.color = 'blue', main.bar.color = 'blue')
+upset(fromList(test2_comps), keep.order = T, mainbar.y.max = 1700, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4')
 
 test2_contrast_genes <- contrast_DOWNgene_lists(big_six[[2]])
 test2_comps <- list('ESC vs Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
                    'ESC vs RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
                    'Retina (stem cell) vs RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-upset(fromList(test2_comps), keep.order = T, mainbar.y.max = 1700, sets.bar.color = 'red', matrix.color = 'red', main.bar.color = 'red')
+upset(fromList(test2_comps), keep.order = T, mainbar.y.max = 1700, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62')
 ```
 
-3. Adult RPE vs Fetal RPE vs Cell Line RPE
-4. immortalized RPE vs Stem Cell Line RPE
-5. Adult Retina vs Stem Cell Line Retina
-6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
+# 3. Adult RPE vs Fetal RPE vs Cell Line RPE
+No significant genes in the  'RPE (stem cell) vs RPE (fetal)' comparison.
+Quite a few (471 and 371) for	RPE (stem cell) vs RPE (adult)	471	371	(coef 2)
+Nearly none (12 and 20) for 	RPE (fetal) vs RPE (adult) (coef 3)
+```{r, message = FALSE}
+colnames(big_six[[3]])
 
+test3_contrast_genes <-contrast_UPgene_lists(big_six[[3]])
+coef2_up_unique <- setdiff(test3_contrast_genes$RPE.stemcell_vs_RPE.adult, test3_contrast_genes$RPE.fetal_vs_RPE.adult)
+coef2_up_GO <- GO_enrichment(coef2_up_unique, background_genes ,'BP')
+coef2_up_GO %>% filter(`Expected Count` > 0.8) %>%  DT::datatable(options = list(pageLength = 20)) 
+
+coef3_up_unique <- setdiff(test3_contrast_genes$RPE.fetal_vs_RPE.adult, test3_contrast_genes$RPE.stemcell_vs_RPE.adult)
+coef3_up_GO <- GO_enrichment(coef3_up_unique, background_genes ,'BP')
+coef3_up_GO %>% filter(`Expected Count` > 0.8) %>%  DT::datatable(options = list(pageLength = 20)) 
+
+test3_contrast_genes <-contrast_DOWNgene_lists(big_six[[3]])
+coef2_down_unique <- setdiff(test3_contrast_genes$RPE.stemcell_vs_RPE.adult, test3_contrast_genes$RPE.fetal_vs_RPE.adult)
+coef2_down_GO <- GO_enrichment(coef2_down_unique, background_genes ,'BP')
+coef2_down_GO %>% filter(`Expected Count` > 0.8)
+coef3_down_unique <- setdiff(test3_contrast_genes$RPE.fetal_vs_RPE.adult, test3_contrast_genes$RPE.stemcell_vs_RPE.adult)
+coef3_down_GO <- GO_enrichment(coef3_down_unique, background_genes ,'BP')
+coef3_up_GO %>% filter(`Expected Count` > 0.8) %>%  DT::datatable(options = list(pageLength = 20)) 
+
+```
+# 4. immortalized RPE vs Stem Cell Line RPE
+```{r, messager = FALSE}
+colnames(big_six[[4]])
+test4_contrast_genes_up <-contrast_UPgene_lists(big_six[[4]])
+test4_up_go <- GO_enrichment(test4_contrast_genes_up, background_genes ,'BP')
+test4_up_go %>%  DT::datatable(options = list(pageLength = 20)) 
+
+test4_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[4]])
+test4_down_go <- GO_enrichment(test4_contrast_genes_down, background_genes ,'BP')
+test4_down_go %>%  DT::datatable(options = list(pageLength = 20)) 
+```
+# 5. Adult Retina vs Stem Cell Line Retina
+```{r, message =  FALSE}
+colnames(big_six[[5]])
+test5_contrast_genes_up <-contrast_UPgene_lists(big_six[[5]])
+test5_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[5]])
+
+test5_up_go <- GO_enrichment(test5_contrast_genes_up$Retina.adult_vs_Retina.stemcell, background_genes ,'BP')
+test5_up_go %>%  DT::datatable(options = list(pageLength = 20)) 
+test5_down_go <- GO_enrichment(test5_contrast_genes_down$Retina.adult_vs_Retina.stemcell, background_genes ,'BP')
+test5_down_go %>%  DT::datatable(options = list(pageLength = 20)) 
+```
+# 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
+```{r, message= FALSE}
+topTable(big_six[[6]],coef=1, p.value = 0.05) %>%  DT::datatable(options = list(pageLength = 20)) 
+```
+
+
+# How to find what genes are the GO:ID
+```{r, message = FALSE}
+go_associated_genes <- GO_term_finder(test5_contrast_genes_up,'GO:0007399') %>% head()
+topTable(big_six[[5]],number=30000) %>% rownames_to_column('Gene') %>% filter(Gene %in% go_associated_genes)
+```
 
