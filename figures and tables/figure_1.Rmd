@@ -111,7 +111,7 @@ row_order <- c('Cell Line', 'Stem Cell Line', 'Fetal Tissue', 'Adult Tissue')
 heatmap_eye <- heatmap_eye[match(row_order, heatmap_eye$Origin),]
 row.names(heatmap_eye) <- heatmap_eye$Origin
 heatmap_eye <- heatmap_eye[,2:5]
-heatmap_eye <- heatmap_eye %>% select(Cornea, Retina, RPE, ESC)
+heatmap_eye <- heatmap_eye %>% dplyr::select(Cornea, Retina, RPE, ESC)
 superheat(heatmap_eye, 
           heat.col.scheme = 'purple', 
           X.text = as.matrix(heatmap_eye),
