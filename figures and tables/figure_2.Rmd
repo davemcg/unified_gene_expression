@@ -24,7 +24,7 @@ core_tight$Tissue = trimws(core_tight$Tissue)
 ```
 
 Plot eye-only clustering
-```{r, fig.width=3, fig.height=3}
+```{r, fig.width=2.5, fig.height=3.6}
 set.seed(23452345)
 eye_samples <- core_tight %>% 
   filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% 
@@ -170,7 +170,7 @@ tsne_plot %>% left_join(.,core_tight) %>%
 gtex_obvious_outliers <- c('SRS332999', 'SRS389531', 'SRS626623', 'SRS627133', 'SRS623923', 'SRS629483')
 ```
 
-Heatmap of t-sne distances for pan-tissue. Aggregated across 25 to 50 perplexities and at the tissue level
+Heatmap of t-sne distances for pan-tissue. Aggregated across 35 to 50 perplexities and at the tissue level
 ```{r, fig.width=5, fig.height=6}
 
 load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
@@ -188,7 +188,7 @@ colnames(distances) <- mean_coord[,1]
 row.names(distances) <- mean_coord[,1]
 superheat(distances, 
           #yr = mean_coord$variance,
-          heat.pal = c("#386cb0","#7fc97f","white"), # taken from theme_Publication.R
+          heat.pal = c("#3eb9c4","#87cc5f","white"), # taken from theme_Publication.R
           col.dendrogram = T,
           pretty.order.rows = T, 
           pretty.order.cols = T,
