@@ -40,8 +40,9 @@ GO_enrichment <- function(genes, background_genes, ontology) {
            `Odds Ratio` = OddsRatio, 
            `Expected Count` = round(`Expected Count`, 1)) %>% 
     dplyr::select(1, `P value`, `P value (FDR)`, `Odds Ratio`, `Expected Count`, Count, Size, Term)
-  result.over $`P value` <- format(result.over $`P value`, digits=3)
-  result.over $`P value (FDR)` <- format(result.over $`P value (FDR)`, digits=3)
-  colnames(result.over )[1] = paste('GO', ontology, 'ID',sep=' ')
+  result.over$`P value` <- format(result.over$`P value`, digits=3)
+  result.over$`P value (FDR)` <- format(result.over$`P value (FDR)`, digits=3)
+  result.over$`Odds Ratio` <- round(result.over$`Odds Ratio`, digits=2)
+  colnames(result.over)[1] = paste('GO', ontology, 'ID',sep=' ')
   return(result.over)
 }
