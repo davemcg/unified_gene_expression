@@ -78,7 +78,7 @@ shinyUI(
       fluidPage(
         fluidRow(column(10,
           img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'), br(),br(),br(),br(),
-          plotlyOutput('tsne',height = '800px')),
+          plotlyOutput('tsne',height = '600px')),
         fluidRow(column(10,
           numericInput('perplexity','Perplexity (5 - 50):', value=40, min=5, max=50)))
       ))
@@ -109,7 +109,17 @@ shinyUI(
         fluidRow(DT::dataTableOutput('table')
         )
       )
-    )
+    ),
+  tabPanel('Information',
+           fluidPage(
+             fluidRow(
+               column(12,img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'))), br(),
+             fluidRow(
+               h2('Methods and materials'),
+               h3('This project was conceived and executed by David McGaughey in OGVFB / NEI /NIH')
+             )
+             )
+           )
   )
 )
 print('UI End')
