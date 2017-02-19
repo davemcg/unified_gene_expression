@@ -31,8 +31,8 @@ shinyUI(
                        ' Cells - EBV-transformed lymphocytes ',
                        ' Cells - Transformed fibroblasts ',
                        ' Liver ', ' Lung ', 'Cornea',
-                       'fetalRetina', 'fetalRPE',
-                       'RPE', 'Retina'),multiple=TRUE),
+                       'Retina - Adult Tissue', 'RPE - Fetal Tissue',
+                       'Cornea - Cell Line'),multiple=TRUE),
             numericInput('num', strong('Number of columns:'), 
               value = 2, min = 1)
           ),
