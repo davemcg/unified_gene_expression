@@ -14,7 +14,7 @@ load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata
 #load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
 
-load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
+load('~/git/unified_gene_expression/interactive_page/all_tsne_plot_prepped.Rdata')
 load('~/git/unified_gene_expression/data/mean_rank_decile.Rdata')
 lengthScaledTPM_processed <- data.frame(lengthScaledTPM_processed)
 lengthScaledTPM_processed$Gene.Name <- row.names(lengthScaledTPM_processed)
@@ -140,7 +140,7 @@ shinyServer(function(input, output, session) {
       left_join(.,core_tight) %>% 
       mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep =''))
     eye_plot_data <- eye_plot_data %>% filter(Tissue %in% c('Retina','RPE','Cornea'))
-    eye_p<-ggplot(data=data.frame(eye_plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue, label=Info)) + 
+    eye_p<-ggplot(data=data.frame(eye_plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue, label=Info, shape=Origin)) + 
       geom_jitter(size=1) + xlab('')  +  facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
@@ -156,13 +156,14 @@ shinyServer(function(input, output, session) {
   
   output$tsne <- renderPlotly({
     perplexity_level <- input$perplexity
-    tsne_plot<- long_tsne_plot%>% left_join(.,core_tight) %>% filter(perplexity==perplexity_level)
+    tsne_plot<- all_tsne_plot_prepped %>% filter(perplexity==perplexity_level)
     
-    p <- tsne_plot %>% 
-      mutate(Info = paste('<br>','Sub-Tissue: ', Sub_Tissue, '<br>', 'SRA: ', sample_accession, '<br>', gsub('\\|\\|', '<br>', sample_attribute), sep ='')) %>% 
-      ggplot(aes(X1,X2,colour = Tissue, shape = Tissue, label=Info ))  +
-      geom_point(size=4) + scale_shape_manual(values=c(0:24,35:50)) +
-      theme_bw()
+    p <- ggplot(tsne_plot,aes(x=X1,y=X2, label=Label)) +
+        ggtitle(paste0('Pan tissue t-sne')) +
+        geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
+        geom_point(size=1, alpha=0.2)   +
+        theme_Publication()
+    
     ggplotly(p)
   })  
   ##########
