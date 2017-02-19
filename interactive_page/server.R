@@ -13,12 +13,14 @@ source('~/git/scripts/theme_Publication.R')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
 #load('~/git/unified_gene_expression/interactive_page/metaData.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+
 load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
 load('~/git/unified_gene_expression/data/mean_rank_decile.Rdata')
 lengthScaledTPM_processed <- data.frame(lengthScaledTPM_processed)
 lengthScaledTPM_processed$Gene.Name <- row.names(lengthScaledTPM_processed)
 shiny_data <- lengthScaledTPM_processed
 core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
+core_tight$Sub_Tissue <- gsub('_',' - ',core_tight$Sub_Tissue)
 long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
 # responsive stuff!
 shinyServer(function(input, output, session) {
@@ -144,7 +146,7 @@ shinyServer(function(input, output, session) {
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
       ggtitle('Interactive scatter plot of eye-tissue gene expression') +
       theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,40,0,0)))
-    ggplotly(eye_p, width = 800, height=600) %>% layout(margin=list(b=100))
+    ggplotly(eye_p, width = 800, height=600) %>% layout(margin=list(b=150))
   })
 
   
