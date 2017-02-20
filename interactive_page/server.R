@@ -143,9 +143,10 @@ shinyServer(function(input, output, session) {
     eye_p<-ggplot(data=data.frame(eye_plot_data),aes(x=Tissue,y=log2(value+1),colour=Tissue, label=Info, shape=Origin)) + 
       geom_jitter(size=2, alpha=0.7) + xlab('')  +  facet_wrap(~Gene.Name, ncol=col_num) +
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
-      ylab("Gene Expression | log2(lengthScaledTPM+1)\n\n\n ") +
+      ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
       ggtitle('Interactive scatter plot of eye-tissue gene expression') +
-      theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,100,0,0)))
+      theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,0,0,100))) +
+      scale_colour_manual(values=c('#ff6a6e', '#00c1c1','#6aad27'))
     ggplotly(eye_p, width = 800, height=500) %>% layout(margin=list(b=150))
   })
 
