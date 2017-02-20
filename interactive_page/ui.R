@@ -112,15 +112,30 @@ shinyUI(
     ),
   tabPanel('Information',
            fluidPage(
-             fluidRow(
-               column(12,img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'))), br(),
-             fluidRow(
-               h2('Methods and materials'),
-               h3('This project was conceived and executed by David McGaughey in OGVFB / NEI /NIH')
+             fluidRow(column(12,img(src='NIH_NEI_Vertical_Logo_Black90.png',align='left'))), br(),
+             fluidRow(column(width = 8, offset = 1, h2('Mission and Brief Methods'))),
+             fluidRow(column(width = 8, offset = 1, 
+                    'The goal of this project is to provide a high quality source collating all publical available human eye RNA expression 
+                    data-sets, allowing researchers to have a single source to find gene expression in eye tissues and to compare their e
+                    xpression against the tissues from the ', a(href='http://www.gtexportal.org','GTEx Project'), br(), br(),
+                    'The raw sequencing reads were obtained and processed with an identical bioinformatic workflow. Extensive QC was done
+                     to remove samples with both lower sequencing quality and unexpected behavior during undirected clustering. Read scoring 
+                     was scaled for transcript size, library depth, and quantile normalized by tissue type. Transcript level quantitation 
+                     was merged to the gene level to improve power and lower variance. Finally genes with low expression across all tissues 
+                     were removed from analysis.')),
+             fluidRow(column(width = 8, offset = 1, h2('Attribution'))),
+             fluidRow(column(width = 8, offset = 1, 'This project was conceived and implemented by', 
+              tags$a(href = "mailto:mcgaugheyd@mail.nih.gov?Subject=eyeIntegration%20Comment", "David McGaughey"), 
+              'in the', tags$a(href='https://nei.nih.gov/intramural/ogcsb','OGVFB'), '/',
+              tags$a(href='https://nei.nih.gov','NEI'), '/',
+              tags$a(href='https://www.nih.gov','NIH'), 
+              'The gene network analysis, visualization, and page design was done by ', tags$a(href='mailto:john.bryan@nih.gov', 'John Bryan'))),
+             fluidRow(column(width = 8, offset = 1, h2('Source Code'))),
+             fluidRow(column(width = 8, offset = 1, h2('Manuscript')))
              )
              )
            )
   )
-)
+
 print('UI End')
 print(Sys.time())
