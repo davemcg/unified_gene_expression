@@ -3,17 +3,23 @@ title: "Supplemental Table S1"
 output: html_notebook
 ---
 
-```{r}
+```{r, message = FALSE}
 library(Rtsne)
 library(DT)
 library(ggplot2)
-library(formattable)
+library(ReporteRs)
 library(tidyverse)
 source('~/git/scripts/theme_Publication.R')
 # https://github.com/stephaniehicks/qsmooth
 load('~/git/unified_gene_expression/data/lengthScaledTPM_all_2017.Rdata')
 load('~/git/unified_gene_expression/data/lengthScaledTPM_processed_2017_02.Rdata')
 source('~/git/unified_gene_expression/scripts/parse_sample_attribute.R')
+
+no_border = borderProperties( width = 0 )
+big_border = borderProperties( width = 2 )
+std_border = borderProperties( width = 1 )
+options("ReporteRs-fontsize"=10, "ReporteRs-default-font"="Monaco")
+
 ```
 
 
@@ -43,5 +49,49 @@ core_tight %>%
   mutate(QC=ifelse(sample_accession %in% c(eye_samples, GTEx_samples), 'Pass', 'Fail, low median counts')) %>% 
   mutate(QC=ifelse(sample_accession %in% c('SRS523795','SRS360124','SRS360123'), 'Fail, potential tissue mislabel', QC)) %>% 
   arrange(study_accession, Tissue, Origin, QC) %>% 
-  dplyr::select(study_accession, study_title, sample_accession, Tissue, Origin, QC) %>% DT::datatable(options = list(pageLength = 20)) 
+  dplyr::select(study_accession, study_title, sample_accession, Tissue, Origin, QC)
+```
+
+
+
+Grouping counts of failed samples by Tissue, Origin
+```{r}
+core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  mutate(QC=ifelse(sample_accession %in% c(eye_samples, GTEx_samples), 'Pass', 'Fail, low median counts')) %>% 
+  mutate(QC=ifelse(sample_accession %in% c('SRS523795','SRS360124','SRS360123'), 'Fail, potential tissue mislabel', QC)) %>% 
+  arrange(study_accession, Tissue, Origin, QC) %>% 
+  dplyr::select(study_accession, study_title, sample_accession, Tissue, Origin, QC) %>% 
+  filter(grepl('Fail', QC)) %>% 
+  group_by(Tissue,Origin) %>%
+  summarise(Count=n(), `Study Accessions`=paste(unique(study_accession), collapse=', ')) %>% 
+  FlexTable(body.cell.props = cellProperties( padding = 2 ), 
+                        header.par.props = parProperties(text.align = "left" ), 
+                        body.par.props = parProperties(text.align = 'left')) %>% 
+  setFlexTableWidths(widths = c(1, 1, 1, 4)) %>% 
+   setFlexTableBorders(footer = TRUE,
+                      inner.vertical = no_border, inner.horizontal = std_border,
+                      outer.vertical = no_border, outer.horizontal = big_border )
+```
+
+Grouping counts of used samples by Tissue, Origin
+```{r}
+core_tight %>% 
+  filter(sample_accession %in% colnames(lengthScaledTPM)) %>% 
+  filter(!Tissue %in% 'ENCODE Cell Line') %>% 
+  mutate(QC=ifelse(sample_accession %in% c(eye_samples, GTEx_samples), 'Pass', 'Fail, low median counts')) %>% 
+  mutate(QC=ifelse(sample_accession %in% c('SRS523795','SRS360124','SRS360123'), 'Fail, potential tissue mislabel', QC)) %>% 
+  arrange(study_accession, Tissue, Origin, QC) %>% 
+  dplyr::select(study_accession, study_title, sample_accession, Tissue, Origin, QC) %>% 
+  filter(!grepl('Fail', QC)) %>% 
+  group_by(Tissue,Origin) %>%
+  summarise(Count=n(), `Study Accessions`=paste(unique(study_accession), collapse=', ')) %>% 
+  FlexTable(body.cell.props = cellProperties( padding = 2 ), 
+                        header.par.props = parProperties(text.align = "left" ), 
+                        body.par.props = parProperties(text.align = 'left')) %>% 
+    setFlexTableWidths(widths = c(1, 1, 1, 4)) %>% 
+   setFlexTableBorders(footer = TRUE,
+                      inner.vertical = no_border, inner.horizontal = std_border,
+                      outer.vertical = no_border, outer.horizontal = big_border )
 ```
