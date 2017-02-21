@@ -46,7 +46,7 @@ shinyServer(function(input, output, session) {
     plot_data <- plot_data %>% filter(Sub_Tissue %in% tissue)
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue)) + 
       geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 90)) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.2)) +
       ggtitle('Box Plot of Pan-Human Gene Expression') +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
@@ -71,7 +71,7 @@ shinyServer(function(input, output, session) {
       summarise(log2FC=mean(log2(value+1)) - mean(BenchValue))
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2FC,fill=Sub_Tissue)) + 
       geom_bar(stat = 'identity') + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 90)) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.2)) +
       geom_hline(aes(yintercept=0,colour='Red')) + 
       ggtitle('Fold Change (log2) of pan-human gene expression') +
       ylab("log2 Fold Change of Gene Expression") 
@@ -142,12 +142,13 @@ shinyServer(function(input, output, session) {
     eye_plot_data <- eye_plot_data %>% filter(Tissue %in% c('Retina','RPE','Cornea'))
     eye_p<-ggplot(data=data.frame(eye_plot_data),aes(x=Tissue,y=log2(value+1),colour=Tissue, label=Info, shape=Origin)) + 
       geom_jitter(size=2, alpha=0.7) + xlab('')  +  facet_wrap(~Gene.Name, ncol=col_num) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
-      ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.2)) +
+      ylab("Gene Expression | log2(lengthScaledTPM+1) <br>_") +
       ggtitle('Interactive scatter plot of eye-tissue gene expression') +
-      theme(text = element_text(size=11), axis.title.y=element_text(margin=margin(0,0,0,100))) +
+      theme(text = element_text(size=11)) +
       scale_colour_manual(values=c('#ff6a6e', '#00c1c1','#6aad27'))
-    ggplotly(eye_p, width = 800, height=500) %>% layout(margin=list(b=150))
+    ggplotly(eye_p, width = 800, height=500) %>% layout(margin=list(b=150,l=100))
+    
   })
 
   
