@@ -46,7 +46,7 @@ shinyServer(function(input, output, session) {
     plot_data <- plot_data %>% filter(Sub_Tissue %in% tissue)
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2(value+1),colour=Tissue)) + 
       geom_jitter(size=2) + geom_boxplot(alpha=0.5) + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 90)) +
       ggtitle('Box Plot of Pan-Human Gene Expression') +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") 
     p
@@ -71,7 +71,7 @@ shinyServer(function(input, output, session) {
       summarise(log2FC=mean(log2(value+1)) - mean(BenchValue))
     p<-ggplot(data=data.frame(plot_data),aes(x=Sub_Tissue,y=log2FC,fill=Sub_Tissue)) + 
       geom_bar(stat = 'identity') + xlab('') + facet_wrap(~Gene.Name, ncol=col_num) +
-      theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
+      theme_Publication() + theme(axis.text.x = element_text(angle = 90)) +
       geom_hline(aes(yintercept=0,colour='Red')) + 
       ggtitle('Fold Change (log2) of pan-human gene expression') +
       ylab("log2 Fold Change of Gene Expression") 
@@ -145,7 +145,7 @@ shinyServer(function(input, output, session) {
       theme_Publication() + theme(axis.text.x = element_text(angle = 75, hjust = 1)) +
       ylab("Gene Expression | log2(lengthScaledTPM+1) ") +
       ggtitle('Interactive scatter plot of eye-tissue gene expression') +
-      theme(text = element_text(size=12), axis.title.y=element_text(margin=margin(0,0,0,100))) +
+      theme(text = element_text(size=11), axis.title.y=element_text(margin=margin(0,0,0,100))) +
       scale_colour_manual(values=c('#ff6a6e', '#00c1c1','#6aad27'))
     ggplotly(eye_p, width = 800, height=500) %>% layout(margin=list(b=150))
   })
@@ -159,12 +159,11 @@ shinyServer(function(input, output, session) {
     perplexity_level <- input$perplexity
     tsne_plot<- all_tsne_plot_prepped %>% filter(perplexity==perplexity_level)
     
-    p <- ggplot(tsne_plot,aes(x=X1,y=X2, label=Label)) +
-        ggtitle(paste0('Pan tissue t-sne')) +
-        geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
-        geom_point(size=1, alpha=0.2)   +
+    p <- ggplot(tsne_plot) +
+        ggtitle('Pan tissue t-sne') +
+        geom_point(size=4, alpha=0.2, aes(x=X1,y=X2,colour=Cluster, label=Label)) +
+        geom_point(data=tsne_plot %>% select(X1,X2), size=0.5, alpha=0.3, colour='black', aes(x=X1,y=X2)) +
         theme_Publication()
-    
     ggplotly(p)
   })  
   ##########
