@@ -1,0 +1,167 @@
+---
+title: "Word Cloud"
+output: html_notebook
+---
+
+```{r, message = FALSE}
+load('~/git/unified_gene_expression/data/go_enrichment.Rdata')
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+library(dplyr)
+```
+
+Collect all go term keywords and calculate frequencies
+```{r, message = FALSE}
+names(go_enrichment)
+all_keywords <-paste(go_enrichment[[1]]$Term,
+                     go_enrichment[[2]]$Term,
+                     go_enrichment[[3]]$Term,
+                     go_enrichment[[4]]$Term,
+                     go_enrichment[[5]]$Term,
+                     go_enrichment[[6]]$Term,
+                     go_enrichment[[7]]$Term,
+                     go_enrichment[[8]]$Term,
+                     go_enrichment[[9]]$Term,
+                     go_enrichment[[10]]$Term,
+                     go_enrichment[[11]]$Term,
+                     go_enrichment[[12]]$Term,
+                     collapse=' ')
+docs <- Corpus(VectorSource( wordStem(all_keywords, language = "english")))
+# Convert the text to lower case
+docs <- tm_map(docs, content_transformer(tolower))
+# Remove numbers
+docs <- tm_map(docs, removeNumbers)
+# Remove english common stopwords
+docs <- tm_map(docs, removeWords, stopwords("english"))
+# Remove your own stop word
+# specify your stopwords as a character vector
+# docs <- tm_map(docs, removeWords, c("blabla1", "blabla2")) 
+# Remove punctuations
+docs <- tm_map(docs, removePunctuation)
+# Eliminate extra white spaces
+docs <- tm_map(docs, stripWhitespace)
+
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+all_go <- data.frame(word = names(v),freq=v)
+#head(d, 10)
+all_go$ratio <- all_go$freq/sum(all_go$freq)
+
+#Word cloud function
+cloud_maker <- function(word_vector, exclusion_words, max.words, all_go){
+  docs <- Corpus(VectorSource(wordStem(word_vector,language='english')))
+  docs <- tm_map(docs, content_transformer(tolower))
+  docs <- tm_map(docs, removeNumbers)
+  docs <- tm_map(docs, stripWhitespace)
+  docs <- tm_map(docs, removePunctuation)
+  docs <- tm_map(docs, removeWords, exclusion_words) 
+  dtm <- TermDocumentMatrix(docs)
+  m <- as.matrix(dtm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  d <- data.frame(word = names(v),freq=v)
+  d$ratio <- d$freq/sum(d$freq)
+  calculated <- left_join(d, all_go, by='word') %>% mutate(delta_ratio = ratio.x-ratio.y, transformed_delta =log10(delta_ratio+1)*1e6) %>% filter(transformed_delta>0)
+  set.seed(1234)
+  wordcloud(words = calculated$word, freq = calculated$transformed_delta, min.freq = 1,
+          max.words=max.words, random.order=FALSE, rot.per=0.35, 
+          colors=c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3"))
+
+}
+```
+
+## RPE vs Retina
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina_rpe_GO_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina_rpe_GO_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+
+## Cornea vs Retina and RPE
+### Up 
+```{r, message = FALSE}
+cloud_maker(go_enrichment$cornea_vs_retina_rpe_GO_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$cornea_vs_retina_rpe_GO_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+
+## Retina stem vs RPE stem
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+## ESC vs RPE stem
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$esc_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$esc_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+## Retina stem vs RPE stem
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+
+## RPE cell vs RPE stem
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$cell.rpe_vs_stem.rpe_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$cell.rpe_vs_stem.rpe_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+
+## RPE stem vs RPE adult
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$rpe.stem_vs_rpe.adult_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$rpe.stem_vs_rpe.adult_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+
+## Adult retina vs stem cell retina
+### Up
+```{r, message = FALSE}
+cloud_maker(go_enrichment$adult.retina_vs_stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
+### Down
+```{r, message = FALSE}
+cloud_maker(go_enrichment$adult.retina_vs_stem_down  %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+            c('involved','process','regulation','negative','positive'),75,all_go)
+```
