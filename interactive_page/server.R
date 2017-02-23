@@ -21,7 +21,6 @@ lengthScaledTPM_processed$Gene.Name <- row.names(lengthScaledTPM_processed)
 shiny_data <- lengthScaledTPM_processed
 core_tight$sample_accession<-gsub('E-MTAB-','E.MTAB.',core_tight$sample_accession)
 core_tight$Sub_Tissue <- gsub('_',' - ',core_tight$Sub_Tissue)
-long_tsne_plot$sample_accession<-gsub('E-MTAB-','E.MTAB.',long_tsne_plot$sample_accession)
 # responsive stuff!
 shinyServer(function(input, output, session) {
   # tissues
