@@ -13,7 +13,7 @@ print(Sys.time())
 
 # Define UI for application that draws a histogram
 shinyUI(
-  navbarPage('eyeIntegration', theme='bootstrap.css', 
+  navbarPage('Human eyeIntegration', theme='bootstrap.css', 
     tabPanel('Pan-Tissue Expression',
       fluidPage(
         fluidRow(
