@@ -65,10 +65,11 @@ gtex_sub_samples <- core_tight %>%
 eye_and_gtex_samples <- c(eye_samples, gtex_sub_samples)
 ```
 
-Update files to import
+Update files to import and get eye_samples in same order as eye_files
 ```{r, message = FALSE}
 eye_and_gtex_files <- files[files %in% paste(eye_and_gtex_samples,'/quant.sf',sep='')]
 eye_files <- files[files %in% paste(eye_samples,'/quant.sf',sep='')]
+eye_samples <- gsub('\\/quant.sf','',eye_files)
 ```
 Gene TX to name conversion annotations
 ```{r, message = FALSE}
@@ -109,7 +110,7 @@ tximport for limma voom
 setwd(working_dir)
 txi.eye.lsTPM_full <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
 txi.eye.lsTPM <- data.frame(txi.eye.lsTPM_full$counts)
-colnames(txi.eye.lsTPM) <- eye_samples
+colnames(txi.eye.lsTPM) <- gsub('\\/quant.sf','',eye_files)
 ```
 
 Function to do some QC steps and make density plots before and after doing:
@@ -261,6 +262,11 @@ cont.matrix <- makeContrasts(Cornea.adult_vs_Cornea.fetal="Cornea_Adult.Tissue-C
 test6 <- limma_voom_test(vfit, cont.matrix)
 ```
 
+Save 6 tests in one file
+```{r, message = FALSE}
+big_six <- list(test1,test2,test3,test4,test5,test6)
+save(big_six, file='~/git/unified_gene_expression/data/big_six_DE_correct.Rdata')
+```
 
 ##############################
 Make all pairwise comparisons
