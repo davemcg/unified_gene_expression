@@ -8,7 +8,6 @@ load('~/git/unified_gene_expression/data/go_enrichment.Rdata')
 library(tm)
 library(SnowballC)
 library(wordcloud)
-library(RColorBrewer)
 library(dplyr)
 ```
 
