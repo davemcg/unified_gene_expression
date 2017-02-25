@@ -13,20 +13,7 @@ library(dplyr)
 
 Collect all go term keywords and calculate frequencies
 ```{r, message = FALSE}
-names(go_enrichment)
-all_keywords <-paste(go_enrichment[[1]]$Term,
-                     go_enrichment[[2]]$Term,
-                     go_enrichment[[3]]$Term,
-                     go_enrichment[[4]]$Term,
-                     go_enrichment[[5]]$Term,
-                     go_enrichment[[6]]$Term,
-                     go_enrichment[[7]]$Term,
-                     go_enrichment[[8]]$Term,
-                     go_enrichment[[9]]$Term,
-                     go_enrichment[[10]]$Term,
-                     go_enrichment[[11]]$Term,
-                     go_enrichment[[12]]$Term,
-                     collapse=' ')
+all_keywords <-go_enrichment %>% dplyr::select(`GO BP ID`, Term) %>% unique() %>% .[['Term']]
 docs <- Corpus(VectorSource( wordStem(all_keywords, language = "english")))
 # Convert the text to lower case
 docs <- tm_map(docs, content_transformer(tolower))
@@ -71,27 +58,43 @@ cloud_maker <- function(word_vector, exclusion_words, max.words, all_go){
 }
 ```
 
+All contrasts
+```{r, message = FALSE}
+go_enrichment %>% dplyr::select(Contrasts, Direction) %>% unique()
+```
 ## RPE vs Retina
 ### Up
 ```{r, message = FALSE}
-cloud_maker(go_enrichment$retina_rpe_GO_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
+                                     Set=='c',
+                                     Direction=='Up',
+                                     as.numeric(`P value (FDR)`)<0.01) %>% .[['Term']],
             c('involved','process','regulation','negative','positive'),75,all_go)
 ```
 ### Down
 ```{r, message = FALSE}
-cloud_maker(go_enrichment$retina_rpe_GO_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
+                                     Set=='c',
+                                     Direction=='Down',
+                                     as.numeric(`P value (FDR)`)<0.01) %>% .[['Term']],
             c('involved','process','regulation','negative','positive'),75,all_go)
 ```
 
-## Cornea vs Retina and RPE
+## Cornea vs Retina vs RPE
 ### Up 
 ```{r, message = FALSE}
-cloud_maker(go_enrichment$cornea_vs_retina_rpe_GO_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
+                                     Set=='abc',
+                                     Direction=='Up',
+                                     as.numeric(`P value`)<0.01)%>% .[['Term']],
             c('involved','process','regulation','negative','positive'),75,all_go)
 ```
 ### Down
 ```{r, message = FALSE}
-cloud_maker(go_enrichment$cornea_vs_retina_rpe_GO_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
+cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
+                                     Set=='abc',
+                                     Direction=='Down',
+                                     as.numeric(`P value`)<0.01)%>% .[['Term']],
             c('involved','process','regulation','negative','positive'),75,all_go)
 ```
 
