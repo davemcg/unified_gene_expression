@@ -174,8 +174,8 @@ go_printer2 <- function(go_frame, num_to_print, title){
 All GO comparison runner. Takes in the output from the set generator and makes does GO enrichment for all 6 unique categories (a, b, c, ab, bc, abc)
 ```{r, message = FALSE}
 all_go_tester <- function(limma_data, test_name){
-  column_classes <- rep(x='character',12)
-  column_names <- c("GO BP ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts")
+  column_classes <- rep(x='character',13)
+  column_names <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts", "Ontology")
   empty_frame <- read.table(text='', colClasses = column_classes, col.names = column_names)
   contrasts <- colnames(limma_data) #example: big_six[[1]]
   all_go_terms = empty_frame
@@ -190,9 +190,13 @@ all_go_tester <- function(limma_data, test_name){
     } 
     else {
       print(i)
-      go_run <- GO_enrichment(up_expressed_sets[[i]], background_genes ,'BP')
-      go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Up',Contrasts=paste(contrasts, collapse=','))
-      all_go_terms <- rbind(all_go_terms, go_run)
+      for (ontology in c('BP','MF')){
+        go_run <- GO_enrichment(up_expressed_sets[[i]], background_genes, ontology)
+        go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Up',Contrasts=paste(contrasts, collapse=','), Ontology=ontology)
+        colnames(go_run)[1] <- 'GO.ID'
+        print(colnames(go_run)==colnames(all_go_terms))
+        all_go_terms <- rbind(all_go_terms, go_run)
+      }
     }
   }
   print('Down')
@@ -206,12 +210,15 @@ all_go_tester <- function(limma_data, test_name){
     } 
     else {
       print(i)
-      go_run <- GO_enrichment(down_expressed_sets[[i]], background_genes ,'BP')
-      go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Down',Contrasts=paste(contrasts, collapse=','))
-      all_go_terms <- rbind(all_go_terms, go_run)
+      for (ontology in c('BP','MF')){
+        go_run <- GO_enrichment(up_expressed_sets[[i]], background_genes, ontology)
+        go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Up',Contrasts=paste(contrasts, collapse=','), Ontology=ontology)
+        colnames(go_run)[1] <- 'GO.ID'
+        all_go_terms <- rbind(all_go_terms, go_run)
+      }
     }
   }
-colnames(all_go_terms) <- c("GO BP ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts")
+colnames(all_go_terms) <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts", "Ontology")
 all_go_terms
 }
 ```
