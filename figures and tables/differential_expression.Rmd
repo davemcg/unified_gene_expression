@@ -477,6 +477,11 @@ go_enrichment <- bind_rows(testA_go_all_sets,
 #save(go_enrichment, file='~/git/unified_gene_expression/data/go_enrichment.Rdata')
 ```
 
+# Summarize num of significant results (GO)
+```{r, message = FALSE}
+go_enrichment %>% group_by(Test, Set, Direction)  %>% summarise(Count=sum(as.numeric(`P value (FDR)`) < 0.05))
+```
+
 # Print out GO results as csv
 ```{r, message = FALSE}
 out_csv = data.frame()
