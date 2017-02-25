@@ -38,7 +38,7 @@ all_go$ratio <- all_go$freq/sum(all_go$freq)
 
 #Word cloud function
 cloud_maker <- function(word_vector, exclusion_words, max.words, all_go){
-  docs <- Corpus(VectorSource(wordStem(word_vector,language='english')))
+  docs <- Corpus(VectorSource(word_vector))
   docs <- tm_map(docs, content_transformer(tolower))
   docs <- tm_map(docs, removeNumbers)
   docs <- tm_map(docs, stripWhitespace)
@@ -51,7 +51,7 @@ cloud_maker <- function(word_vector, exclusion_words, max.words, all_go){
   d$ratio <- d$freq/sum(d$freq)
   calculated <- left_join(d, all_go, by='word') %>% mutate(delta_ratio = ratio.x-ratio.y, transformed_delta =log10(delta_ratio+1)*1e6) %>% filter(transformed_delta>0)
   set.seed(1234)
-  wordcloud(words = calculated$word, freq = calculated$transformed_delta, min.freq = 1,
+  wordcloud(words = calculated$word, scale=c(3,1),freq = calculated$transformed_delta, min.freq = 1,
           max.words=max.words, random.order=FALSE, rot.per=0.35, 
           colors=c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3"))
 
@@ -64,7 +64,7 @@ go_enrichment %>% dplyr::select(Contrasts, Direction) %>% unique()
 ```
 ## RPE vs Retina
 ### Up
-```{r, message = FALSE}
+```{r, message = FALSE, fig.width=3, fig.height=3}
 cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
                                      Set=='c',
                                      Direction=='Up',
@@ -72,7 +72,7 @@ cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Co
             c('involved','process','regulation','negative','positive'),75,all_go)
 ```
 ### Down
-```{r, message = FALSE}
+```{r, message = FALSE, fig.width=3,fig.height=3}
 cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
                                      Set=='c',
                                      Direction=='Down',
