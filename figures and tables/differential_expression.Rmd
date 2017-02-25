@@ -417,7 +417,7 @@ go_printer(test4_up_go,8, 'Stem Cell RPE < Immortalized Cell Line RPE')
 
 test4_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[4]])
 test4_down_go <- GO_enrichment(test4_contrast_genes_down, background_genes ,'BP')
-test4_down_go <- test4_down_go %>% mutate(Test='Test D', Set='b',Direction='Down',Contrasts=colnames(big_six[[4]]))
+test4_down_go <- test4_down_go %>% mutate(Test='Test D', Set='a',Direction='Down',Contrasts=colnames(big_six[[4]]))
 go_printer(test4_down_go,8, 'Stem Cell RPE > Immortalized Cell Line RPE')
 ```
 # 5. Adult Retina vs Stem Cell Line Retina
@@ -433,7 +433,7 @@ test5_up_go <- test5_up_go %>% mutate(Test='Test E', Set='a',Direction='Up',Cont
 #go_printer(test5_up_go,8, 'Stem Cell Retina > Adult Retina')
 
 test5_down_go <- GO_enrichment(test5_contrast_genes_down$Retina.adult_vs_Retina.stemcell, background_genes ,'BP')
-test5_down_go <- test5_down_go %>% mutate(Test='Test E', Set='b',Direction='Down',Contrasts=colnames(big_six[[5]]))
+test5_down_go <- test5_down_go %>% mutate(Test='Test E', Set='a',Direction='Down',Contrasts=colnames(big_six[[5]]))
 #go_printer(test5_down_go,8, 'Stem Cell Retina < Adult Retina')
 ```
 # 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
