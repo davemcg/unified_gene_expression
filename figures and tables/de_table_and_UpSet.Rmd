@@ -12,10 +12,10 @@ library(DT)
 library(ReporteRs)
 load('~/git/unified_gene_expression/data/big_six_DE_correct.Rdata')
 load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
-source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
-source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
+#source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
+#source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
 # for GO enrichement
-background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
+#background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
 options("ReporteRs-fontsize"=8, "ReporteRs-default-font"="Monaco")
 ```
 
@@ -97,7 +97,7 @@ contrast_gene_lists <- function(limma_data){
   print(vector_of_comparisons)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
-    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
+    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.01)
     if(nrow(stats)==0){
       out_list[vector_of_comparisons[i]] <- list('')
       next}
@@ -111,7 +111,7 @@ contrast_UPgene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
-    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
+    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.01)
     if(nrow(stats)==0){
       out_list[vector_of_comparisons[i]] <- list('')
       next}
@@ -125,7 +125,7 @@ contrast_DOWNgene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
-    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
+    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.01)
     if(nrow(stats)==0){
       out_list[vector_of_comparisons[i]] <- list('')
       next}
@@ -149,17 +149,17 @@ test1_contrast_genes <- contrast_gene_lists(big_six[[1]])
 
 
 test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
-test1_comps <- list('Cornea vs Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
-                   'Cornea vs RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
-                   'Retina vs RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
-upset(fromList(test1_comps),sets = rev(names(test1_comps)), mainbar.y.max = 3000, keep.order = T, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4', set_size.angles = 45)
-
+test1_up_comps <- list('Cornea > Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
+                   'Cornea > RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
+                   'Retina > RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
 
 test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
-test1_comps <- list('Cornea vs Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
-                   'Cornea vs RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
-                   'Retina vs RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
-upset(fromList(test1_comps),sets = rev(names(test1_comps)),mainbar.y.max = 3000, keep.order = T, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62', set_size.angles = 45)
+test1_down_comps <- list('Cornea < Retina' = test1_contrast_genes$Cornea.adult_vs_Retina.adult, 
+                   'Cornea < RPE' = test1_contrast_genes$Cornea.adult_vs_RPE.adult, 
+                   'Retina < RPE' = test1_contrast_genes$Retina.adult_vs_RPE.adult)
+
+test1_comps <- c(test1_up_comps, test1_down_comps)
+upset(fromList(test1_comps),sets = rev(c('Cornea > Retina','Cornea < Retina', 'Cornea > RPE', 'Cornea < RPE','Retina > RPE','Retina < RPE')), keep.order = T, set_size.angles = 45, nintersects = 12)
 ```
 
 # 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
@@ -172,50 +172,54 @@ colnames(big_six[[2]])
 # upset(fromList(test2_comps), keep.order = T, mainbar.y.max = 3000)
 
 test2_contrast_genes <- contrast_UPgene_lists(big_six[[2]])
-test2_comps <- list('ESC vs Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
-                   'ESC vs RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
-                   'Retina (stem cell) vs RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-upset(fromList(test2_comps),sets = rev(names(test2_comps)), keep.order = T, mainbar.y.max = 2500, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4', set_size.angles = 45)
+test2_up_comps <- list('ESC > Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
+                   'ESC > RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
+                   'Retina (stem cell) > RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
 
 test2_contrast_genes <- contrast_DOWNgene_lists(big_six[[2]])
-test2_comps <- list('ESC vs Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
-                   'ESC vs RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
-                   'Retina (stem cell) vs RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-upset(fromList(test2_comps), sets = rev(names(test2_comps)),keep.order = T, mainbar.y.max = 2500, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62', set_size.angles = 45)
+test2_down_comps <- list('ESC < Retina (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell, 
+                   'ESC < RPE (stem cell)' = test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell, 
+                   'Retina (stem cell) < RPE (stem cell)' = test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
+
+test2_comps <- c(test2_up_comps,test2_down_comps)
+upset(fromList(test2_comps), sets = rev(c('ESC > Retina (stem cell)','ESC < Retina (stem cell)','ESC > RPE (stem cell)','ESC < RPE (stem cell)','Retina (stem cell) > RPE (stem cell)','Retina (stem cell) < RPE (stem cell)')),keep.order = T, set_size.angles = 45, nintersects = 12)
 ```
 
 # 3. Adult RPE vs Fetal RPE vs Cell Line RPE
  RPE (stem cell) vs RPE (fetal) - coef 1
 	RPE (stem cell) vs RPE (adult) - coef 2
 	RPE (fetal) vs RPE (adult) - (coef 3)
-```{r, message = FALSE}
+```{r, message = FALSE, fig.width=3, fig.height=2.5}
 
 test3_contrast_genes <- contrast_UPgene_lists(big_six[[3]])
-test3_comps <- list('RPE (stem cell) vs RPE (fetal)' = test3_contrast_genes$RPE.stemcell_vs_RPE.fetal, 
-                   'RPE (stem cell) vs RPE (adult)' = test3_contrast_genes$RPE.stemcell_vs_RPE.adult, 
-                   'RPE (fetal) vs RPE (adult)' = test3_contrast_genes$RPE.fetal_vs_RPE.adult)
-upset(fromList(test3_comps),sets = rev(names(test3_comps)), keep.order = T, mainbar.y.max = 3000, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4', set_size.angles = 45)
+test3_up_comps <- list('RPE (stem cell) > RPE (fetal)' = test3_contrast_genes$RPE.stemcell_vs_RPE.fetal, 
+                   'RPE (stem cell) > RPE (adult)' = test3_contrast_genes$RPE.stemcell_vs_RPE.adult, 
+                   'RPE (fetal) > RPE (adult)' = test3_contrast_genes$RPE.fetal_vs_RPE.adult)
 
 test3_contrast_genes <- contrast_DOWNgene_lists(big_six[[3]])
-test3_comps <- list('RPE (stem cell) vs RPE (fetal)' = test3_contrast_genes$RPE.stemcell_vs_RPE.fetal, 
-                   'RPE (stem cell) vs RPE (adult)' = test3_contrast_genes$RPE.stemcell_vs_RPE.adult, 
-                   'RPE (fetal) vs RPE (adult)' = test3_contrast_genes$RPE.fetal_vs_RPE.adult)
-upset(fromList(test3_comps), sets = rev(names(test3_comps)),keep.order = T, mainbar.y.max = 3000, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62', set_size.angles = 45)
+test3_down_comps <- list('RPE (stem cell) < RPE (fetal)' = test3_contrast_genes$RPE.stemcell_vs_RPE.fetal, 
+                   'RPE (stem cell) < RPE (adult)' = test3_contrast_genes$RPE.stemcell_vs_RPE.adult, 
+                   'RPE (fetal) < RPE (adult)' = test3_contrast_genes$RPE.fetal_vs_RPE.adult)
+
+test3_comps <- c(test3_up_comps, test3_down_comps)
+
+upset(fromList(test3_comps), sets = rev(c('RPE (stem cell) > RPE (fetal)', 'RPE (stem cell) < RPE (fetal)', 'RPE (stem cell) > RPE (adult)', 'RPE (stem cell) < RPE (adult)', 'RPE (fetal) > RPE (adult)', 'RPE (fetal) < RPE (adult)' )),keep.order = T, set_size.angles = 45, nintersects=12)
 ```
 
 # 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
-```{r, message= FALSE}
+```{r, message = FALSE, fig.width=3, fig.height=2.5}
 colnames(big_six[[6]])
 
 test6_contrast_genes <- contrast_UPgene_lists(big_six[[6]])
-test6_comps <- list('Cornea vs Cornea (fetal)' = test6_contrast_genes$Cornea.adult_vs_Cornea.fetal,
-                   'Cornea vs Cornea (cell line)' = test6_contrast_genes$Cornea.adult_vs_Cornea.immortalizedcell, 
-                   'Cornea (fetal) vs Cornea (cell line)' = test6_contrast_genes$Cornea.fetal_vs_Cornea.immortalizedcell)
-upset(fromList(test6_comps),sets = rev(names(test6_comps)), keep.order = T, mainbar.y.max = 1750, sets.bar.color = '#3eb9c4', matrix.color = '#3eb9c4', main.bar.color = '#3eb9c4', set_size.angles = 45)
+test6_up_comps <- list('Cornea > Cornea (fetal)' = test6_contrast_genes$Cornea.adult_vs_Cornea.fetal,
+                   'Cornea > Cornea (cell line)' = test6_contrast_genes$Cornea.adult_vs_Cornea.immortalizedcell, 
+                   'Cornea (fetal) > Cornea (cell line)' = test6_contrast_genes$Cornea.fetal_vs_Cornea.immortalizedcell)
 
 test6_contrast_genes <- contrast_DOWNgene_lists(big_six[[6]])
-test6_comps <- list('Cornea vs Cornea (fetal)' = test6_contrast_genes$Cornea.adult_vs_Cornea.fetal,
-                   'Cornea vs Cornea (cell line)' = test6_contrast_genes$Cornea.adult_vs_Cornea.immortalizedcell, 
-                   'Cornea (fetal) vs Cornea (cell line)' = test6_contrast_genes$Cornea.fetal_vs_Cornea.immortalizedcell)
-upset(fromList(test6_comps), sets = rev(names(test6_comps)),keep.order = T, mainbar.y.max = 1750, sets.bar.color = '#ef6d62', matrix.color = '#ef6d62', main.bar.color = '#ef6d62', set_size.angles = 45)
+test6_down_comps <- list('Cornea < Cornea (fetal)' = test6_contrast_genes$Cornea.adult_vs_Cornea.fetal,
+                   'Cornea < Cornea (cell line)' = test6_contrast_genes$Cornea.adult_vs_Cornea.immortalizedcell, 
+                   'Cornea (fetal) < Cornea (cell line)' = test6_contrast_genes$Cornea.fetal_vs_Cornea.immortalizedcell)
+
+test6_comps <- c(test6_up_comps, test6_down_comps)
+upset(fromList(test6_comps), sets = rev(c('Cornea > Cornea (fetal)','Cornea < Cornea (fetal)','Cornea > Cornea (cell line)','Cornea < Cornea (cell line)','Cornea (fetal) > Cornea (cell line)','Cornea (fetal) < Cornea (cell line)')),keep.order = T, set_size.angles = 45, nintersects = 12)
 ```
