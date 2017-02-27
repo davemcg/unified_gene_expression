@@ -70,32 +70,42 @@ cloud_maker <- function(word_vector, exclusion_words, max.words, all_go, title){
 }
 ```
 
-All contrasts
+All Tests/Sets
 ```{r, message = FALSE}
-go_enrichment %>% dplyr::select(Contrasts, Direction, Ontology, Set) %>% unique()
+go_enrichment %>% dplyr::select(Test, Set, Ontology) %>% unique()
+
+go_enrichment %>% dplyr::select(Test) %>% unique()
 ```
 
-```{r,fig.width=3,fig.height=3}
+Clean up test titles
+```{r, message = FALSE}
+new_description <- rbind(c('Test A', 'Cornea, Retina, RPE (Adult Tissue)'),
+                         c('Test B', 'ESC, RPE, Retina (all Stem Cell)'),
+                         c('Test C', 'RPE (Adult, Fetal, and Stem Cell)'),
+                         c('Test D', 'RPE (Immortalized Cell and Stem Cell)'),
+                         c('Test E', 'Retina (Adult and Stem Cell)'),
+                         c('Test F', 'Cornea (Adult, Fetal, and Stem Cell)')) %>% data.frame()
+colnames(new_description) <- c('Test','Description')
+go_enrichment <- go_enrichment %>% left_join(.,new_description)
+head(go_enrichment)
+```
+
+```{r,fig.width=4,fig.height=4}
 go_enrichment %>% 
-  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
-  group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test A') %>%
-  mutate(Title=paste(gsub(',', '\n',Contrasts), 
-                     paste0('Set: ',Set), 
-                     paste0('Direction: ',Direction),
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test A', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
                      sep='\n')) %>% 
   do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
 
 
-```{r,fig.width=3,fig.height=3}
+
+```{r,fig.width=4,fig.height=4}
 go_enrichment %>% 
-  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
-  group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test B') %>%
-  mutate(Title=paste(gsub(',', '\n',Contrasts), 
-                     paste0('Set: ',Set), 
-                     paste0('Direction: ',Direction),
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test B', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
                      sep='\n')) %>% 
   do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
@@ -107,39 +117,40 @@ go_enrichment %>%
 
 
 
-```{r,fig.width=3,fig.height=3}
+
+```{r,fig.width=4,fig.height=4}
 go_enrichment %>% 
-  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
-  group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test C') %>%
-  mutate(Title=paste(gsub(',', '\n',Contrasts), 
-                     paste0('Set: ',Set), 
-                     paste0('Direction: ',Direction),
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test C', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
                      sep='\n')) %>% 
   do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
 
 
-```{r,fig.width=3,fig.height=3}
+```{r,fig.width=4,fig.height=4}
 go_enrichment %>% 
-  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
-  group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test D') %>%
-  mutate(Title=paste(gsub(',', '\n',Contrasts), 
-                     paste0('Set: ',Set), 
-                     paste0('Direction: ',Direction),
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test D', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
                      sep='\n')) %>% 
   do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
 
-```{r,fig.width=3,fig.height=3}
+```{r,fig.width=4,fig.height=4}
 go_enrichment %>% 
-  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
-  group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test E') %>%
-  mutate(Title=paste(gsub(',', '\n',Contrasts), 
-                     paste0('Set: ',Set), 
-                     paste0('Direction: ',Direction),
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test E', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
+                     sep='\n')) %>% 
+  do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
+```
+
+```{r,fig.width=4,fig.height=4}
+go_enrichment %>% 
+  group_by(Test, Set) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.05, Test=='Test F', Ontology=='BP') %>%
+  mutate(Title=paste(Test, Set,
                      sep='\n')) %>% 
   do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
