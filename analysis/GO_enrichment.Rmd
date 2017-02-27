@@ -17,97 +17,35 @@ source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
 source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
 # for GO enrichement
 background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
+
 options("ReporteRs-fontsize"=8, "ReporteRs-default-font"="Monaco")
 ```
 
-Overall counts up and down for the six tests
-```{r, message = FALSE}
-test1_summary <- summary(decideTests(big_six[[1]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '1')
-test2_summary <- summary(decideTests(big_six[[2]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '2')
-test3_summary <- summary(decideTests(big_six[[3]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '3')
-test4_summary <- summary(decideTests(big_six[[4]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '4')
-test5_summary <- summary(decideTests(big_six[[5]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '5')
-test6_summary <- summary(decideTests(big_six[[6]], lfc = 1, p.value = 0.01, adjust.method = 'fdr')) %>% tidy() %>% mutate(Comparison = '6')
-
-test_summaries <- rbind(test1_summary,test2_summary,test3_summary,test4_summary,test5_summary,test6_summary)
-colnames(test_summaries) <- c('LogFC','Comparison','Count','Comparison Set')
-
-test_summaries <- test_summaries %>% 
-  filter(LogFC!=0) %>% 
-  dplyr::select(-`Comparison Set`) %>% 
-  spread(Comparison, Count) %>% t() %>% 
-  data.frame() %>% 
-  rownames_to_column('Comparisons') %>% 
-  dplyr::slice(-1) %>% 
-  separate(Comparisons, c('Comparison','Base'), sep='_vs_') %>% 
-  mutate(Comparison=gsub('\\.',' (',Comparison), Comparison=gsub('$',')', Comparison), Comparison=gsub('cell',' cell', Comparison)) %>% 
-  mutate(Base=gsub('\\.',' (',Base), Base=gsub('$',')', Base), Base=gsub('cell',' cell', Base))
-
-colnames(test_summaries)<- c('Comparison','Reference', 'LogFC < -1', 'LogFC > 1')
-```
-
-Format table 
-http://davidgohel.github.io/ReporteRs/articles/flextable_examples.html
-```{r}
-no_border = borderProperties( width = 0 )
-big_border = borderProperties( width = 2 )
-std_border = borderProperties( width = 1 )
-    
-the_table <- test_summaries %>% 
-  mutate(Test=c('A','A','A','B','B','B','C','C','C','D','E','F','F','F')) %>% 
-  mutate(Comparison = paste(Comparison, Reference, sep = ' vs ')) %>% 
-  dplyr::select(Test, Comparison, `LogFC < -1`, `LogFC > 1`)
-
-flex_table <- the_table %>% FlexTable(body.cell.props = cellProperties( padding = 2 ), 
-                        header.par.props = parProperties(text.align = "center" ), 
-                        body.par.props = parProperties(text.align = 'left'),
-                        header.columns = FALSE) %>% 
-  spanFlexTableRows(.,j="Test",runs=as.character(the_table$Test)) %>%
-  addHeaderRow(value = c("", "Log Fold Change"), colspan = c( 2, 2 ) ) %>% 
-  addHeaderRow(value = c('Test', 'Comparison', '< -1', '> 1')) %>% 
-  setFlexTableWidths(widths = c(1,5, 1, 1) )  %>% 
-  setFlexTableBorders(footer = TRUE,
-                      inner.vertical = no_border, inner.horizontal = std_border,
-                      outer.vertical = no_border, outer.horizontal = big_border )
-
-flex_table[2,1:2, to="header", side = "top"] = no_border
-flex_table
-#doc = docx()
-#doc = addFlexTable(doc, flex_table)
-#writeDoc(doc,file='~/Desktop/table class.docx')
-```
 
 Function to pull different sets out
 ```{r, message = FALSE}
-set_maker <- function(a,b,c){
-  a_set <- setdiff(a,c(b,c))
-  b_set <- setdiff(b,c(a,c))
-  c_set <- setdiff(c,c(a,b))
-  abc <- Reduce(intersect,list(a,b,c))
-  ab <- setdiff(intersect(a,b),c)
-  ac <- setdiff(intersect(a,c),b)
-  bc <- setdiff(intersect(b,c),a)
-  list(a=a_set,b=b_set,c=c_set,ab=ab,ac=ac,bc=bc,abc=abc)
+set_maker2 <- function(list.of.all){
+  out = list()
+  # returns setdiff of list(s) against all lists
+  # example: length(setdiff(intersect(test1_comps[[1]],test1_comps[[6]]),unlist(test1_comps[c(2,3,4,5)])))
+  combinations <- combn(c(1,2,3,4,5,6),2)
+  for (i in 1:6){
+    print(names(list.of.all)[i])
+    set2 <- setdiff(1:6, i)
+    out[[names(list.of.all)[i]]] <- setdiff(list.of.all[[i]], unlist(list.of.all[set2])) 
+  }
+  for (i in 1:ncol(combinations)){
+    set1 <- combinations[, i]
+    print(paste(names(list.of.all)[set1], collapse = ', '))
+    set2 <- setdiff(1:6, set1)
+    out[[paste(names(list.of.all)[set1], collapse = ', ')]] <- setdiff(intersect(list.of.all[[set1[1]]], list.of.all[[set1[2]]]), unlist(list.of.all[set2]))
+  }  
+  out
 }
 ```
 
 Function to return gene list that are abs(logFC) > 1 and adj.P.Val < 0.05 for the different contrasts
 ```{r, messag= FALSE}
-# all sig
-contrast_gene_lists <- function(limma_data){
-  vector_of_comparisons <- colnames(limma_data)
-  print(vector_of_comparisons)
-  out_list <- list()
-  for (i in 1:length(vector_of_comparisons)){
-    stats <-  topTable(limma_data, coef=i, number = 30000, adjust.method = 'fdr', p.value = 0.05)
-    if(nrow(stats)==0){
-      out_list[vector_of_comparisons[i]] <- list('')
-      next}
-    stats_cut_down <- stats[abs(stats[,'logFC']) > 1,]
-    out_list[vector_of_comparisons[i]] <- list(row.names(stats_cut_down))
-    }
-  out_list
-}
 # just up vs 'control' (right side of contrast)
 contrast_UPgene_lists <- function(limma_data){
   vector_of_comparisons <- colnames(limma_data)
@@ -173,52 +111,29 @@ go_printer2 <- function(go_frame, num_to_print, title){
 
 All GO comparison runner. Takes in the output from the set generator and makes does GO enrichment for all 6 unique categories (a, b, c, ab, bc, abc)
 ```{r, message = FALSE}
-all_go_tester <- function(limma_data, test_name){
-  column_classes <- rep(x='character',13)
-  column_names <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts", "Ontology")
+all_go_tester <- function(test_set, test_name){
+  column_classes <- rep(x='character',11)
+  column_names <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test", "Set", "Ontology")
   empty_frame <- read.table(text='', colClasses = column_classes, col.names = column_names)
-  contrasts <- colnames(limma_data) #example: big_six[[1]]
   all_go_terms = empty_frame
-  print('Up')
-  up_expressed_genes <- contrast_UPgene_lists(limma_data)
-  up_expressed_sets <- set_maker(up_expressed_genes[[contrasts[1]]],
-                  up_expressed_genes[[contrasts[2]]],
-                  up_expressed_genes[[contrasts[3]]])
-  for (i in names(up_expressed_sets)){
-    if (length(up_expressed_sets[[i]])<6){
+ 
+  for (i in names(test_set)){
+    if (length(test_set[[i]])<6){
       print(paste(i, 'has less than 6 genes in it, skipping GO enrichment'))
     } 
     else {
       print(i)
       for (ontology in c('BP','MF')){
-        go_run <- GO_enrichment(up_expressed_sets[[i]], background_genes, ontology)
-        go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Up',Contrasts=paste(contrasts, collapse=','), Ontology=ontology)
+        go_run <- GO_enrichment(test_set[[i]], background_genes, ontology)
+        go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i, Ontology=ontology)
         colnames(go_run)[1] <- 'GO.ID'
         print(colnames(go_run)==colnames(all_go_terms))
         all_go_terms <- rbind(all_go_terms, go_run)
       }
     }
   }
-  print('Down')
-  down_expressed_genes <- contrast_DOWNgene_lists(limma_data)
-  down_expressed_sets <- set_maker(down_expressed_genes[[contrasts[1]]],
-                  down_expressed_genes[[contrasts[2]]],
-                  down_expressed_genes[[contrasts[3]]])
-  for (i in names(down_expressed_sets)){
-    if (length(down_expressed_sets[[i]])<6){
-      print(paste(i, 'has less than 6 genes in it, skipping GO enrichment'))
-    } 
-    else {
-      print(i)
-      for (ontology in c('BP','MF')){
-        go_run <- GO_enrichment(down_expressed_sets[[i]], background_genes, ontology)
-        go_run <- go_run %>% data.frame() %>% mutate(Test=test_name, Set=i,Direction='Down',Contrasts=paste(contrasts, collapse=','), Ontology=ontology)
-        colnames(go_run)[1] <- 'GO.ID'
-        all_go_terms <- rbind(all_go_terms, go_run)
-      }
-    }
-  }
-colnames(all_go_terms) <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test","Set","Direction", "Contrasts", "Ontology")
+  
+colnames(all_go_terms) <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test", "Set", "Ontology")
 all_go_terms
 }
 ```
@@ -235,7 +150,7 @@ Six DE tests:
 
 # 1. Cornea vs Retina vs RPE (all adult)
 ```{r, message = FALSE, fig.width=3, fig.height=3}
-testA_go_all_sets <- all_go_tester(big_six[[1]],'Test A')
+testA_go_all_sets <- all_go_tester(set_maker2(test1_comps),'Test A')
 
 #go_printer(testA_go_all_sets %>% filter(Test=='Test A',Set=='b',Direction=='Down') %>%  dplyr::select(`GO BP ID`:Term),15, 'Test A - Set B Down')
 ```
@@ -243,12 +158,12 @@ testA_go_all_sets <- all_go_tester(big_six[[1]],'Test A')
 
 # 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 ```{r, message = FALSE}
-testB_go_all_sets <- all_go_tester(big_six[[2]],'Test B')
+testB_go_all_sets <- all_go_tester(set_maker2(test2_comps),'Test B')
 ```
 
 # 3. Adult RPE vs Fetal RPE vs Cell Line RPE
 ```{r}
-testC_go_all_sets <- all_go_tester(big_six[[3]],'Test C')
+testC_go_all_sets <- all_go_tester(set_maker2(test3_comps),'Test C')
 
 #go_printer(testC_go_all_sets %>% filter(Test=='Test C',Set=='b',Direction=='Up',as.numeric(`P value (FDR)`)<0.05) %>%  dplyr::select(`GO BP ID`:Term),15, 'Test C - Set B Down')
 ```
@@ -257,57 +172,53 @@ testC_go_all_sets <- all_go_tester(big_six[[3]],'Test C')
 ```{r, messager = FALSE}
 colnames(big_six[[4]])
 test4_contrast_genes_up <-contrast_UPgene_lists(big_six[[4]])
-test4_up_go <- rbind(GO_enrichment(test4_contrast_genes_up, background_genes, 'BP') %>% 
-                       mutate(Test='Test D', Set='a',Direction='Up',Contrasts=colnames(big_six[[4]]), Ontology='BP') %>% 
-                         rename(`GO BP ID`='GO ID'),
-                     GO_enrichment(test4_contrast_genes_up, background_genes ,'MF') %>% 
-                       mutate(Test='Test D', Set='a',Direction='Up',Contrasts=colnames(big_six[[4]]), Ontology='MF') %>% 
-                         rename(`GO MF ID`='GO ID'))
-
-#go_printer(test4_up_go,8, 'Stem Cell RPE < Immortalized Cell Line RPE')
 test4_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[4]])
-test4_down_go <- rbind(GO_enrichment(test4_contrast_genes_down, background_genes, 'BP') %>% 
-                       mutate(Test='Test D', Set='a',Direction='Down',Contrasts=colnames(big_six[[4]]), Ontology='BP') %>% 
-                         rename(`GO BP ID`='GO ID'),
-                     GO_enrichment(test4_contrast_genes_down, background_genes ,'MF') %>% 
-                       mutate(Test='Test D', Set='a',Direction='Down',Contrasts=colnames(big_six[[4]]), Ontology='MF') %>% 
-                         rename(`GO MF ID`='GO ID'))
-#go_printer(test4_down_go,8, 'Stem Cell RPE > Immortalized Cell Line RPE')
+testD_go_all_sets <- rbind(
+                            GO_enrichment(test4_contrast_genes_up, background_genes, 'BP') %>% 
+                              mutate(Test='Test D', Set='RPE (cell) > RPE (stem cell)', Ontology='BP') %>% 
+                              rename(`GO BP ID`='GO ID'),
+                           GO_enrichment(test4_contrast_genes_up, background_genes, 'MF') %>% 
+                              mutate(Test='Test D', Set='RPE (cell) > RPE (stem cell)', Ontology='MF') %>% 
+                              rename(`GO MF ID`='GO ID'),
+                           GO_enrichment(test4_contrast_genes_down, background_genes, 'BP') %>% 
+                              mutate(Test='Test D', Set='RPE (cell) < RPE (stem cell)', Ontology='BP') %>% 
+                              rename(`GO BP ID`='GO ID'),
+                            GO_enrichment(test4_contrast_genes_down, background_genes, 'MF') %>% 
+                              mutate(Test='Test D', Set='RPE (cell) < RPE (stem cell)', Ontology='MF') %>% 
+                              rename(`GO MF ID`='GO ID')
+                           )
 ```
 # 5. Adult Retina vs Stem Cell Line Retina
 ```{r, message =  FALSE}
 colnames(big_six[[5]])
 test5_contrast_genes_up <-contrast_UPgene_lists(big_six[[5]])
 test5_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[5]])
-
-
-test5_up_go <- rbind(GO_enrichment(test5_contrast_genes_up, background_genes, 'BP') %>% 
-                       mutate(Test='Test E', Set='a',Direction='Up',Contrasts=colnames(big_six[[5]]), Ontology='BP') %>% 
-                         rename(`GO BP ID`='GO ID'),
-                     GO_enrichment(test5_contrast_genes_up, background_genes ,'MF') %>% 
-                       mutate(Test='Test E', Set='a',Direction='Up',Contrasts=colnames(big_six[[5]]), Ontology='MF') %>% 
-                         rename(`GO MF ID`='GO ID'))
-#go_printer(test5_up_go,8, 'Stem Cell Retina > Adult Retina')
-
-test5_down_go <- rbind(GO_enrichment(test5_contrast_genes_down, background_genes, 'BP') %>% 
-                       mutate(Test='Test E', Set='a',Direction='Down',Contrasts=colnames(big_six[[5]]), Ontology='BP') %>% 
-                         rename(`GO BP ID`='GO ID'),
-                     GO_enrichment(test5_contrast_genes_down, background_genes ,'MF') %>% 
-                       mutate(Test='Test E', Set='a',Direction='Down',Contrasts=colnames(big_six[[5]]), Ontology='MF') %>% 
-                         rename(`GO MF ID`='GO ID'))
-#go_printer(test5_down_go,8, 'Stem Cell Retina < Adult Retina')
+testE_go_all_sets <- rbind(
+                            GO_enrichment(test5_contrast_genes_up, background_genes, 'BP') %>% 
+                              mutate(Test='Test E', Set='Retina > Retina (stem cell)', Ontology='BP') %>% 
+                              rename(`GO BP ID`='GO ID'),
+                           GO_enrichment(test5_contrast_genes_up, background_genes, 'MF') %>% 
+                              mutate(Test='Test E', Set='Retina > Retina (stem cell)', Ontology='MF') %>% 
+                              rename(`GO MF ID`='GO ID'),
+                           GO_enrichment(test5_contrast_genes_down, background_genes, 'BP') %>% 
+                              mutate(Test='Test E', Set='Retina < Retina (stem cell)', Ontology='BP') %>% 
+                              rename(`GO BP ID`='GO ID'),
+                            GO_enrichment(test5_contrast_genes_down, background_genes, 'MF') %>% 
+                              mutate(Test='Test E', Set='Retina < Retina (stem cell)', Ontology='MF') %>% 
+                              rename(`GO MF ID`='GO ID')
+                           )
 ```
 
 
 # 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
 ```{r, message = FALSE}
-testF_go_all_sets <- all_go_tester(big_six[[6]],'Test F')
+testF_go_all_sets <- all_go_tester(set_maker2(test6_comps),'Test F')
 ```
 
 # How to find what genes are the GO:ID
 ```{r, message = FALSE}
-go_associated_genes <- GO_term_finder(retina_rpe_GO_genes_up,'GO:0050953')
-topTable(big_six[[1]],number=30000) %>% rownames_to_column('Gene') %>% filter(Gene %in% go_associated_genes)
+#go_associated_genes <- GO_term_finder(retina_rpe_GO_genes_up,'GO:0050953')
+#topTable(big_six[[1]],number=30000) %>% rownames_to_column('Gene') %>% filter(Gene %in% go_associated_genes)
 ```
 
 # Save GO term enrichment searches
@@ -315,17 +226,15 @@ topTable(big_six[[1]],number=30000) %>% rownames_to_column('Gene') %>% filter(Ge
 go_enrichment <- bind_rows(testA_go_all_sets,
                        testB_go_all_sets,
                        testC_go_all_sets,
-                       test4_up_go,
-                       test4_down_go,
-                       test5_up_go,
-                       test5_down_go,
+                       testD_go_all_sets,
+                       testE_go_all_sets,
                        testF_go_all_sets)
 save(go_enrichment, file='~/git/unified_gene_expression/data/go_enrichment.Rdata')
 ```
 
 # Summarize num of significant results (GO)
 ```{r, message = FALSE}
-go_enrichment %>% group_by(Test, Set, Ontology,Direction)  %>% summarise(Count=sum(as.numeric(`P value (FDR)`) < 0.05))
+go_enrichment %>% group_by(Test, Set, Ontology)  %>% summarise(Count=sum(as.numeric(`P value (FDR)`) < 0.05))
 ```
 
 # Print out GO results as csv
