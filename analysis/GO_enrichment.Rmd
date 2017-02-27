@@ -264,55 +264,8 @@ GO enrichment. Retina against RPE
 testA_go_all_sets <- all_go_tester(big_six[[1]],'Test A')
 
 #go_printer(testA_go_all_sets %>% filter(Test=='Test A',Set=='b',Direction=='Down') %>%  dplyr::select(`GO BP ID`:Term),15, 'Test A - Set B Down')
-# 
-# 
-# # Retina vs RPE unique, up (RPE << retina for gene expression)
-# test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
-# sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
-#                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
-#                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
-# length(sets$c)
-# retina_rpe_GO_up <- GO_enrichment(sets$c, background_genes ,'BP')
-# 
-# retina_rpe_GO_genes_up <- sets$c
-# nrow(retina_rpe_GO_up %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer2(retina_rpe_GO_up,8,'Retina > RPE')
-# 
-# # Retina vs RPE unique, down (retina << RPE)
-# test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
-# sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
-#                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
-#                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
-# length(sets$c)
-# retina_rpe_GO_down <- GO_enrichment(sets$c, background_genes ,'BP')
-# nrow(retina_rpe_GO_down %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer2(retina_rpe_GO_down,8,'Retina < RPE')
 ```
 
-Go enrichment. Cornea against Retina/RPE
-```{r, message = FALSE, fig.width=3, fig.height=2.5}
-# # cornea vs RPE and retina (RPE and retina << cornea)
-# test1_contrast_genes <- contrast_UPgene_lists(big_six[[1]])
-# sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
-#                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
-#                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
-# length(sets$ab)
-# cornea_vs_retina_rpe_GO_up <- GO_enrichment(sets$ab, background_genes ,'BP')
-# nrow(cornea_vs_retina_rpe_GO_up %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(cornea_vs_retina_rpe_GO_up,8, 'Cornea > RPE and Retina')
-# 
-# 
-# # cornea vs RPE and retina (RPE and retina >> cornea)
-# test1_contrast_genes <- contrast_DOWNgene_lists(big_six[[1]])
-# sets <- set_maker(test1_contrast_genes$Cornea.adult_vs_Retina.adult,
-#                   test1_contrast_genes$Cornea.adult_vs_RPE.adult,
-#                   test1_contrast_genes$Retina.adult_vs_RPE.adult)
-# length(sets$ab)
-# cornea_vs_retina_rpe_GO_down <- GO_enrichment(sets$ab, background_genes ,'BP')
-# nrow(cornea_vs_retina_rpe_GO_down %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(cornea_vs_retina_rpe_GO_down,8, 'Cornea < RPE and Retina')
-
-```
 
 # 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 ```{r, message = FALSE, fig.width=3, fig.height=2.5}
@@ -338,48 +291,6 @@ upset(fromList(test2_comps), sets = rev(names(test2_comps)),keep.order = T, main
 GO enrichment
 ```{r, message = FALSE}
 testB_go_all_sets <- all_go_tester(big_six[[2]],'Test B')
-
-# #stem cell rpe >> stem cell retina
-# test2_contrast_genes <- contrast_UPgene_lists(big_six[[2]])
-# sets <- set_maker(test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell,
-#                   test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell,
-#                   test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-# length(sets$c)
-# retina.stem_vs_rpe.stem_up <- GO_enrichment(sets$c, background_genes ,'BP')
-# nrow(retina.stem_vs_rpe.stem_up %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(retina.stem_vs_rpe.stem_up, 8, 'Stem Cell Retina > Stem Cell RPE')
-# 
-#   
-# #stem cell rpe << stem cell retina
-# test2_contrast_genes <- contrast_DOWNgene_lists(big_six[[2]])
-# sets <- set_maker(test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell,
-#                   test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell,
-#                   test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-# length(sets$c)
-# retina.stem_vs_rpe.stem_down <- GO_enrichment(sets$c, background_genes ,'BP')
-# nrow(retina.stem_vs_rpe.stem_down %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(retina.stem_vs_rpe.stem_down, 8, 'Stem Cell Retina < Stem Cell RPE')
-# 
-# #stem cell rpe << ESC
-# test2_contrast_genes <- contrast_UPgene_lists(big_six[[2]])
-# sets <- set_maker(test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell,
-#                   test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell,
-#                   test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-# length(sets$b)
-# esc_vs_rpe.stem_up <- GO_enrichment(sets$b, background_genes ,'BP')
-# nrow(esc_vs_rpe.stem_up %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(esc_vs_rpe.stem_up, 8, 'ESC > Stem Cell RPE')
-# 
-#   
-# #stem cell rpe >> ESC
-# test2_contrast_genes <- contrast_DOWNgene_lists(big_six[[2]])
-# sets <- set_maker(test2_contrast_genes$ESC.stemcell_vs_Retina.stemcell,
-#                   test2_contrast_genes$ESC.stemcell_vs_RPE.stemcell,
-#                   test2_contrast_genes$Retina.stemcell_vs_RPE.stemcell)
-# length(sets$b)
-# esc_vs_rpe.stem_down <- GO_enrichment(sets$b, background_genes ,'BP')
-# nrow(esc_vs_rpe.stem_down %>% filter(as.numeric(`P value (FDR)`)<0.05))
-# go_printer(esc_vs_rpe.stem_down, 8, 'ESC < Stem Cell RPE')
 ```
 # 3. Adult RPE vs Fetal RPE vs Cell Line RPE
  RPE (stem cell) vs RPE (fetal) - coef 1
