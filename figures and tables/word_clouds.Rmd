@@ -92,7 +92,7 @@ go_enrichment %>%
 go_enrichment %>% 
   mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
   group_by(Test, Set, Direction) %>% 
-  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test A', Direction=='Down') %>%
+  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test B') %>%
   mutate(Title=paste(gsub(',', '\n',Contrasts), 
                      paste0('Set: ',Set), 
                      paste0('Direction: ',Direction),
@@ -107,110 +107,39 @@ go_enrichment %>%
 
 
 
-## RPE vs Retina
-### Up
-```{r, message = FALSE, fig.width=3, fig.height=3}
-cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
-                                     Set=='c',
-                                     Direction=='Up',
-                                     Ontology=='BP',
-                                     as.numeric(`P value (FDR)`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-text(x=0,y=0,'RPE vs Retina, BP, Up')
-```
-### Down
-```{r, message = FALSE, fig.width=3,fig.height=3}
-cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
-                                     Set=='c',
-                                     Direction=='Down',
-                                     as.numeric(`P value (FDR)`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
+```{r,fig.width=3,fig.height=3}
+go_enrichment %>% 
+  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
+  group_by(Test, Set, Direction) %>% 
+  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test C') %>%
+  mutate(Title=paste(gsub(',', '\n',Contrasts), 
+                     paste0('Set: ',Set), 
+                     paste0('Direction: ',Direction),
+                     sep='\n')) %>% 
+  do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
 
-## Cornea vs Retina vs RPE
-### Up 
-```{r, message = FALSE}
-cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
-                                     Set=='abc',
-                                     Direction=='Up',
-                                     as.numeric(`P value`)<0.01)%>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment %>% filter(Contrasts=='Cornea.adult_vs_Retina.adult,Cornea.adult_vs_RPE.adult,Retina.adult_vs_RPE.adult',
-                                     Set=='abc',
-                                     Direction=='Down',
-                                     as.numeric(`P value`)<0.01)%>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
+
+```{r,fig.width=3,fig.height=3}
+go_enrichment %>% 
+  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
+  group_by(Test, Set, Direction) %>% 
+  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test D') %>%
+  mutate(Title=paste(gsub(',', '\n',Contrasts), 
+                     paste0('Set: ',Set), 
+                     paste0('Direction: ',Direction),
+                     sep='\n')) %>% 
+  do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
 
-## Retina stem vs RPE stem
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-## ESC vs RPE stem
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$esc_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$esc_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-## Retina stem vs RPE stem
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$retina.stem_vs_rpe.stem_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-
-## RPE cell vs RPE stem
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$cell.rpe_vs_stem.rpe_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$cell.rpe_vs_stem.rpe_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-
-## RPE stem vs RPE adult
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$rpe.stem_vs_rpe.adult_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$rpe.stem_vs_rpe.adult_down %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-
-## Adult retina vs stem cell retina
-### Up
-```{r, message = FALSE}
-cloud_maker(go_enrichment$adult.retina_vs_stem_up %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
-```
-### Down
-```{r, message = FALSE}
-cloud_maker(go_enrichment$adult.retina_vs_stem_down  %>% filter(as.numeric(`P value`)<0.01) %>% .[['Term']],
-            c('involved','process','regulation','negative','positive'),75,all_BP_go)
+```{r,fig.width=3,fig.height=3}
+go_enrichment %>% 
+  mutate(Contrasts = gsub('\\.|_',' ', Contrasts)) %>%
+  group_by(Test, Set, Direction) %>% 
+  filter(as.numeric(`P value (FDR)`,Ontology=='BP') < 0.05, Test=='Test E') %>%
+  mutate(Title=paste(gsub(',', '\n',Contrasts), 
+                     paste0('Set: ',Set), 
+                     paste0('Direction: ',Direction),
+                     sep='\n')) %>% 
+  do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
 ```
