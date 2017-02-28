@@ -70,6 +70,7 @@ Update files to import and get eye_samples in same order as eye_files
 eye_and_gtex_files <- files[files %in% paste(eye_and_gtex_samples,'/quant.sf',sep='')]
 eye_files <- files[files %in% paste(eye_samples,'/quant.sf',sep='')]
 eye_samples <- gsub('\\/quant.sf','',eye_files)
+eye_and_gtex_samples <- gsub('\\/quant.sf','',eye_and_gtex_files)
 ```
 Gene TX to name conversion annotations
 ```{r, message = FALSE}
@@ -108,9 +109,14 @@ DESeq2
 tximport for limma voom
 ```{r, message = FALSE}
 setwd(working_dir)
+## eye only
 txi.eye.lsTPM_full <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
 txi.eye.lsTPM <- data.frame(txi.eye.lsTPM_full$counts)
 colnames(txi.eye.lsTPM) <- gsub('\\/quant.sf','',eye_files)
+## eye and gtex
+txi.eyeandgtex.lsTPM_full <- tximport(eye_and_gtex_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
+txi.eyeandtex.lsTPM <- data.frame(txi.eyeandgtex.lsTPM_full$counts)
+colnames(txi.eyeandgtex.lsTPM) <- eye_and_gtex_samples
 ```
 
 Function to do some QC steps and make density plots before and after doing:
