@@ -65,7 +65,7 @@ gtex_sub_samples <- core_tight %>%
 eye_and_gtex_samples <- c(eye_samples, gtex_sub_samples)
 ```
 
-Update files to import and get eye_samples in same order as eye_files
+Update files to import and get eye_(and_gtex)_samples in same order as eye_(and_gtex)_files
 ```{r, message = FALSE}
 eye_and_gtex_files <- files[files %in% paste(eye_and_gtex_samples,'/quant.sf',sep='')]
 eye_files <- files[files %in% paste(eye_samples,'/quant.sf',sep='')]
@@ -91,6 +91,18 @@ SampleTable_eye <- data.frame(eye_samples) %>%
   left_join(.,core_tight) %>% 
   select(sample_accession, Tissue, Origin)
 ```
+
+Create metadata file for eye and gtex samples
+```{r, message = FALSE}
+# metadata
+SampleTable_eye_and_gtex <- data.frame(eye_and_gtex_samples) %>% 
+  mutate(sample_accession = eye_and_gtex_samples) %>% 
+  select(sample_accession) %>% 
+  left_join(.,core_tight) %>% 
+  select(sample_accession, Tissue, Origin)
+```
+
+
 DESeq2
 ```{r, message = FALSE}
 #############
@@ -106,17 +118,21 @@ DESeq2
 ###############
 ```
 
-tximport for limma voom
+tximport for limma voom (eye)
 ```{r, message = FALSE}
 setwd(working_dir)
 ## eye only
 txi.eye.lsTPM_full <- tximport(eye_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
 txi.eye.lsTPM <- data.frame(txi.eye.lsTPM_full$counts)
 colnames(txi.eye.lsTPM) <- gsub('\\/quant.sf','',eye_files)
+```
+tximport for limma voom (eye and gtex)
+```{r, message = FALSE}
+setwd(working_dir)
 ## eye and gtex
 txi.eyeandgtex.lsTPM_full <- tximport(eye_and_gtex_files, type = "salmon", tx2gene = anno, reader = read_tsv, countsFromAbundance = "lengthScaledTPM")
-txi.eyeandtex.lsTPM <- data.frame(txi.eyeandgtex.lsTPM_full$counts)
-colnames(txi.eyeandgtex.lsTPM) <- eye_and_gtex_samples
+txi.eye.and.gtex.lsTPM <- data.frame(txi.eyeandgtex.lsTPM_full$counts)
+colnames(txi.eye.and.gtex.lsTPM) <- eye_and_gtex_samples
 ```
 
 Function to do some QC steps and make density plots before and after doing:
@@ -185,6 +201,11 @@ QC eye samples
 lsTPM_qsmooth <- QC(txi.eye.lsTPM, SampleTable_eye, 'Tissue')
 ```
 
+QC eye and gtex samples
+```{r, message = FALSE}
+lsTPM_eye_and_gtex_qsmooth <- QC(txi.eye.and.gtex.lsTPM, SampleTable_eye_and_gtex, 'Tissue')
+```
+
 Set up design matrix for eye only tests and do voom normalization
 ```{r, message = FALSE}
 # design matrix
@@ -207,10 +228,25 @@ limma_voom_test <- function(lmFit_object, your_custom_contrast_matrix){
   efit
   #topTableF(efit, number=30000, adjust.method='fdr')
 }
+```
+
+Set up design matrix for eye and gtex tests and do voom normalization
+```{r, message = FALSE}
+# design matrix
+new_tissue <- SampleTable_eye_and_gtex %>% mutate(Tissue = ifelse(Tissue %in% c('Retina','RPE','Cornea','ESC'), Tissue, 'Body')) %>% .[['Tissue']]
+tissue_origin <- paste(new_tissue, SampleTable_eye_and_gtex$Origin,sep="_") %>% str_replace_all(., " ", ".") %>% factor()
+tissue_origin %>% sort() %>% unique()
+design_eye_and_gtex <- model.matrix(~0 + tissue_origin)
+colnames(design_eye_and_gtex) <- levels(tissue_origin)
+# bring in lsTPM valuesvoom
+y_eye_gtex <- DGEList(lsTPM_eye_and_gtex_qsmooth)
+y_eye_gtex <- calcNormFactors(y_eye_gtex)
+v_eye_gtex <- voom(y_eye_gtex, design_eye_and_gtex)
+vfit_eye_gtex <- lmFit(v_eye_gtex, design_eye_and_gtex)
 
 ```
 
-Six DE tests:
+Six DE tests for eye only set:
 1. Cornea vs Retina vs RPE (all adult)
 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 3. Adult RPE vs Fetal RPE vs Cell Line RPE
@@ -274,15 +310,15 @@ big_six <- list(test1,test2,test3,test4,test5,test6)
 save(big_six, file='~/git/unified_gene_expression/data/big_six_DE_correct.Rdata')
 ```
 
-##############################
-Make all pairwise comparisons
-##############################
+##############################################
+Make all pairwise comparisons for eye and gtex
+##############################################
 ```{r, message=FALSE}
 combn(unique(tissue_origin),2) %>% 
   t() %>% 
   data.table() %>% 
-  mutate(name=paste(V1,V2,sep='_vs_'),
-         contrast=paste(V1,V2,sep='-'),
+  mutate(name=paste(V2,V1,sep='_vs_'),
+         contrast=paste(V2,V1,sep='-'),
          all_makeContrasts=paste(name,'=\"',contrast,'\",\n',sep='')) %>% 
   .[['all_makeContrasts']] %>% cat()
 ```
@@ -290,61 +326,72 @@ combn(unique(tissue_origin),2) %>%
 Now make contrast with all comparisons, copied from chunk above.
 ```{r, message=F}
 
-cont.matrix_all <- makeContrasts(RPE_Stem.Cell.Line_vs_RPE_Fetal.Tissue="RPE_Stem.Cell.Line-RPE_Fetal.Tissue",
- RPE_Stem.Cell.Line_vs_Retina_Adult.Tissue="RPE_Stem.Cell.Line-Retina_Adult.Tissue",
- RPE_Stem.Cell.Line_vs_RPE_Adult.Tissue="RPE_Stem.Cell.Line-RPE_Adult.Tissue",
- RPE_Stem.Cell.Line_vs_RPE_Cell.Line="RPE_Stem.Cell.Line-RPE_Cell.Line",
- RPE_Stem.Cell.Line_vs_ESC_Stem.Cell.Line="RPE_Stem.Cell.Line-ESC_Stem.Cell.Line",
- RPE_Stem.Cell.Line_vs_Retina_Stem.Cell.Line="RPE_Stem.Cell.Line-Retina_Stem.Cell.Line",
- RPE_Stem.Cell.Line_vs_Cornea_Adult.Tissue="RPE_Stem.Cell.Line-Cornea_Adult.Tissue",
- RPE_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Stem.Cell.Line-Cornea_Fetal.Tissue",
- RPE_Stem.Cell.Line_vs_Cornea_Cell.Line="RPE_Stem.Cell.Line-Cornea_Cell.Line",
+cont.matrix_all <- makeContrasts(Retina_Adult.Tissue_vs_Body_Tissue="Retina_Adult.Tissue-Body_Tissue",
  RPE_Fetal.Tissue_vs_Retina_Adult.Tissue="RPE_Fetal.Tissue-Retina_Adult.Tissue",
- RPE_Fetal.Tissue_vs_RPE_Adult.Tissue="RPE_Fetal.Tissue-RPE_Adult.Tissue",
- RPE_Fetal.Tissue_vs_RPE_Cell.Line="RPE_Fetal.Tissue-RPE_Cell.Line",
- RPE_Fetal.Tissue_vs_ESC_Stem.Cell.Line="RPE_Fetal.Tissue-ESC_Stem.Cell.Line",
- RPE_Fetal.Tissue_vs_Retina_Stem.Cell.Line="RPE_Fetal.Tissue-Retina_Stem.Cell.Line",
- RPE_Fetal.Tissue_vs_Cornea_Adult.Tissue="RPE_Fetal.Tissue-Cornea_Adult.Tissue",
- RPE_Fetal.Tissue_vs_Cornea_Fetal.Tissue="RPE_Fetal.Tissue-Cornea_Fetal.Tissue",
- RPE_Fetal.Tissue_vs_Cornea_Cell.Line="RPE_Fetal.Tissue-Cornea_Cell.Line",
- Retina_Adult.Tissue_vs_RPE_Adult.Tissue="Retina_Adult.Tissue-RPE_Adult.Tissue",
- Retina_Adult.Tissue_vs_RPE_Cell.Line="Retina_Adult.Tissue-RPE_Cell.Line",
- Retina_Adult.Tissue_vs_ESC_Stem.Cell.Line="Retina_Adult.Tissue-ESC_Stem.Cell.Line",
- Retina_Adult.Tissue_vs_Retina_Stem.Cell.Line="Retina_Adult.Tissue-Retina_Stem.Cell.Line",
- Retina_Adult.Tissue_vs_Cornea_Adult.Tissue="Retina_Adult.Tissue-Cornea_Adult.Tissue",
- Retina_Adult.Tissue_vs_Cornea_Fetal.Tissue="Retina_Adult.Tissue-Cornea_Fetal.Tissue",
- Retina_Adult.Tissue_vs_Cornea_Cell.Line="Retina_Adult.Tissue-Cornea_Cell.Line",
+ RPE_Stem.Cell.Line_vs_Retina_Adult.Tissue="RPE_Stem.Cell.Line-Retina_Adult.Tissue",
+ RPE_Cell.Line_vs_Retina_Adult.Tissue="RPE_Cell.Line-Retina_Adult.Tissue",
+ ESC_Stem.Cell.Line_vs_Retina_Adult.Tissue="ESC_Stem.Cell.Line-Retina_Adult.Tissue",
+ RPE_Adult.Tissue_vs_Retina_Adult.Tissue="RPE_Adult.Tissue-Retina_Adult.Tissue",
+ Cornea_Adult.Tissue_vs_Retina_Adult.Tissue="Cornea_Adult.Tissue-Retina_Adult.Tissue",
+ Cornea_Fetal.Tissue_vs_Retina_Adult.Tissue="Cornea_Fetal.Tissue-Retina_Adult.Tissue",
+ Cornea_Cell.Line_vs_Retina_Adult.Tissue="Cornea_Cell.Line-Retina_Adult.Tissue",
+ Retina_Stem.Cell.Line_vs_Retina_Adult.Tissue="Retina_Stem.Cell.Line-Retina_Adult.Tissue",
+ RPE_Fetal.Tissue_vs_Body_Tissue="RPE_Fetal.Tissue-Body_Tissue",
+ RPE_Stem.Cell.Line_vs_Body_Tissue="RPE_Stem.Cell.Line-Body_Tissue",
+ RPE_Cell.Line_vs_Body_Tissue="RPE_Cell.Line-Body_Tissue",
+ ESC_Stem.Cell.Line_vs_Body_Tissue="ESC_Stem.Cell.Line-Body_Tissue",
+ RPE_Adult.Tissue_vs_Body_Tissue="RPE_Adult.Tissue-Body_Tissue",
+ Cornea_Adult.Tissue_vs_Body_Tissue="Cornea_Adult.Tissue-Body_Tissue",
+ Cornea_Fetal.Tissue_vs_Body_Tissue="Cornea_Fetal.Tissue-Body_Tissue",
+ Cornea_Cell.Line_vs_Body_Tissue="Cornea_Cell.Line-Body_Tissue",
+ Retina_Stem.Cell.Line_vs_Body_Tissue="Retina_Stem.Cell.Line-Body_Tissue",
+ RPE_Stem.Cell.Line_vs_RPE_Fetal.Tissue="RPE_Stem.Cell.Line-RPE_Fetal.Tissue",
+ RPE_Cell.Line_vs_RPE_Fetal.Tissue="RPE_Cell.Line-RPE_Fetal.Tissue",
+ ESC_Stem.Cell.Line_vs_RPE_Fetal.Tissue="ESC_Stem.Cell.Line-RPE_Fetal.Tissue",
+ RPE_Adult.Tissue_vs_RPE_Fetal.Tissue="RPE_Adult.Tissue-RPE_Fetal.Tissue",
+ Cornea_Adult.Tissue_vs_RPE_Fetal.Tissue="Cornea_Adult.Tissue-RPE_Fetal.Tissue",
+ Cornea_Fetal.Tissue_vs_RPE_Fetal.Tissue="Cornea_Fetal.Tissue-RPE_Fetal.Tissue",
+ Cornea_Cell.Line_vs_RPE_Fetal.Tissue="Cornea_Cell.Line-RPE_Fetal.Tissue",
+ Retina_Stem.Cell.Line_vs_RPE_Fetal.Tissue="Retina_Stem.Cell.Line-RPE_Fetal.Tissue",
+ RPE_Cell.Line_vs_RPE_Stem.Cell.Line="RPE_Cell.Line-RPE_Stem.Cell.Line",
+ ESC_Stem.Cell.Line_vs_RPE_Stem.Cell.Line="ESC_Stem.Cell.Line-RPE_Stem.Cell.Line",
+ RPE_Adult.Tissue_vs_RPE_Stem.Cell.Line="RPE_Adult.Tissue-RPE_Stem.Cell.Line",
+ Cornea_Adult.Tissue_vs_RPE_Stem.Cell.Line="Cornea_Adult.Tissue-RPE_Stem.Cell.Line",
+ Cornea_Fetal.Tissue_vs_RPE_Stem.Cell.Line="Cornea_Fetal.Tissue-RPE_Stem.Cell.Line",
+ Cornea_Cell.Line_vs_RPE_Stem.Cell.Line="Cornea_Cell.Line-RPE_Stem.Cell.Line",
+ Retina_Stem.Cell.Line_vs_RPE_Stem.Cell.Line="Retina_Stem.Cell.Line-RPE_Stem.Cell.Line",
+ ESC_Stem.Cell.Line_vs_RPE_Cell.Line="ESC_Stem.Cell.Line-RPE_Cell.Line",
  RPE_Adult.Tissue_vs_RPE_Cell.Line="RPE_Adult.Tissue-RPE_Cell.Line",
+ Cornea_Adult.Tissue_vs_RPE_Cell.Line="Cornea_Adult.Tissue-RPE_Cell.Line",
+ Cornea_Fetal.Tissue_vs_RPE_Cell.Line="Cornea_Fetal.Tissue-RPE_Cell.Line",
+ Cornea_Cell.Line_vs_RPE_Cell.Line="Cornea_Cell.Line-RPE_Cell.Line",
+ Retina_Stem.Cell.Line_vs_RPE_Cell.Line="Retina_Stem.Cell.Line-RPE_Cell.Line",
  RPE_Adult.Tissue_vs_ESC_Stem.Cell.Line="RPE_Adult.Tissue-ESC_Stem.Cell.Line",
- RPE_Adult.Tissue_vs_Retina_Stem.Cell.Line="RPE_Adult.Tissue-Retina_Stem.Cell.Line",
- RPE_Adult.Tissue_vs_Cornea_Adult.Tissue="RPE_Adult.Tissue-Cornea_Adult.Tissue",
- RPE_Adult.Tissue_vs_Cornea_Fetal.Tissue="RPE_Adult.Tissue-Cornea_Fetal.Tissue",
- RPE_Adult.Tissue_vs_Cornea_Cell.Line="RPE_Adult.Tissue-Cornea_Cell.Line",
- RPE_Cell.Line_vs_ESC_Stem.Cell.Line="RPE_Cell.Line-ESC_Stem.Cell.Line",
- RPE_Cell.Line_vs_Retina_Stem.Cell.Line="RPE_Cell.Line-Retina_Stem.Cell.Line",
- RPE_Cell.Line_vs_Cornea_Adult.Tissue="RPE_Cell.Line-Cornea_Adult.Tissue",
- RPE_Cell.Line_vs_Cornea_Fetal.Tissue="RPE_Cell.Line-Cornea_Fetal.Tissue",
- RPE_Cell.Line_vs_Cornea_Cell.Line="RPE_Cell.Line-Cornea_Cell.Line",
- ESC_Stem.Cell.Line_vs_Retina_Stem.Cell.Line="ESC_Stem.Cell.Line-Retina_Stem.Cell.Line",
- ESC_Stem.Cell.Line_vs_Cornea_Adult.Tissue="ESC_Stem.Cell.Line-Cornea_Adult.Tissue",
- ESC_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="ESC_Stem.Cell.Line-Cornea_Fetal.Tissue",
- ESC_Stem.Cell.Line_vs_Cornea_Cell.Line="ESC_Stem.Cell.Line-Cornea_Cell.Line",
+ Cornea_Adult.Tissue_vs_ESC_Stem.Cell.Line="Cornea_Adult.Tissue-ESC_Stem.Cell.Line",
+ Cornea_Fetal.Tissue_vs_ESC_Stem.Cell.Line="Cornea_Fetal.Tissue-ESC_Stem.Cell.Line",
+ Cornea_Cell.Line_vs_ESC_Stem.Cell.Line="Cornea_Cell.Line-ESC_Stem.Cell.Line",
+ Retina_Stem.Cell.Line_vs_ESC_Stem.Cell.Line="Retina_Stem.Cell.Line-ESC_Stem.Cell.Line",
+ Cornea_Adult.Tissue_vs_RPE_Adult.Tissue="Cornea_Adult.Tissue-RPE_Adult.Tissue",
+ Cornea_Fetal.Tissue_vs_RPE_Adult.Tissue="Cornea_Fetal.Tissue-RPE_Adult.Tissue",
+ Cornea_Cell.Line_vs_RPE_Adult.Tissue="Cornea_Cell.Line-RPE_Adult.Tissue",
+ Retina_Stem.Cell.Line_vs_RPE_Adult.Tissue="Retina_Stem.Cell.Line-RPE_Adult.Tissue",
+ Cornea_Fetal.Tissue_vs_Cornea_Adult.Tissue="Cornea_Fetal.Tissue-Cornea_Adult.Tissue",
+ Cornea_Cell.Line_vs_Cornea_Adult.Tissue="Cornea_Cell.Line-Cornea_Adult.Tissue",
  Retina_Stem.Cell.Line_vs_Cornea_Adult.Tissue="Retina_Stem.Cell.Line-Cornea_Adult.Tissue",
+ Cornea_Cell.Line_vs_Cornea_Fetal.Tissue="Cornea_Cell.Line-Cornea_Fetal.Tissue",
  Retina_Stem.Cell.Line_vs_Cornea_Fetal.Tissue="Retina_Stem.Cell.Line-Cornea_Fetal.Tissue",
- Retina_Stem.Cell.Line_vs_Cornea_Cell.Line="Retina_Stem.Cell.Line-Cornea_Cell.Line",
- Cornea_Adult.Tissue_vs_Cornea_Fetal.Tissue="Cornea_Adult.Tissue-Cornea_Fetal.Tissue",
- Cornea_Adult.Tissue_vs_Cornea_Cell.Line="Cornea_Adult.Tissue-Cornea_Cell.Line",
- Cornea_Fetal.Tissue_vs_Cornea_Cell.Line="Cornea_Fetal.Tissue-Cornea_Cell.Line", levels=design)
+ Retina_Stem.Cell.Line_vs_Cornea_Cell.Line="Retina_Stem.Cell.Line-Cornea_Cell.Line", levels=design_eye_and_gtex)
 ```
 
 Redo fit with new contrasts matrix and get F statistic for ENTIRE group. Finding genes where are significantly DE in across all comparisons. Also requiring logFC to be >2 for at least one comparison. 
 ```{r, message = FALSE}
-vfit_all <- lmFit(v, design)
+vfit_all <- lmFit(v_eye_gtex, design_eye_and_gtex)
 vfit_all <- contrasts.fit(vfit_all, contrasts=cont.matrix_all)
 efit_all <- eBayes(vfit_all)
-DE_45 <- topTableF(efit_all,number=300000, adjust.method = 'fdr') %>% data.frame()
+DE_55 <- topTableF(efit_all,number=300000, adjust.method = 'fdr') %>% data.frame()
 save(efit_all, file='~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
 ```
+
 
 ######################################
 Ignore below for now
@@ -352,55 +399,55 @@ Ignore below for now
 
 Now kmeans cluster the DE genes into groups. First use scree plot to pick n.
 ```{r, message = FALSE}
-set.seed(3939)
-wss <- (nrow(DE[,1:36])-1)*sum(apply(DE[,1:36],2,var))
-for (i in 2:80) wss[i] <- sum(kmeans(DE[,1:36], 
-  	centers=i, iter.max = 10000)$withinss)
-plot(1:80, wss, type="b", xlab="Number of Clusters",
-  ylab="Within groups sum of squares")
+# set.seed(3939)
+# wss <- (nrow(DE[,1:36])-1)*sum(apply(DE[,1:36],2,var))
+# for (i in 2:80) wss[i] <- sum(kmeans(DE[,1:36],
+#   	centers=i, iter.max = 10000)$withinss)
+# plot(1:80, wss, type="b", xlab="Number of Clusters",
+#   ylab="Within groups sum of squares")
 ```
 
 Do kmeans with 20 groups
 ```{r, message = FALSE}
-set.seed(9942389)
-DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% rownames_to_column('Gene') %>% filter(adj.P.Val<0.01) %>% data.frame()
-kfit <- kmeans(DE[,2:37], 20, iter.max = 10000) # 20 cluster solution
-# move k means cluster assignment over to DE data frame
-DE$cluster <- kfit$cluster
-# clean up the contrast names
-comparisons <- colnames(DE)[2:37] %>% 
-  gsub('_vs_','|vs|', .) %>% 
-  gsub('_',' (',.) %>% 
-  gsub('\\.Line|\\.Tissue',')',.) %>% 
-  gsub('\\|vs\\|',' vs ',.) %>% 
-  gsub('hTERT\\.Cell','hTERT',.)
-colnames(DE)[2:37] <- comparisons
+# set.seed(9942389)
+# DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% rownames_to_column('Gene') %>% filter(adj.P.Val<0.01) %>% data.frame()
+# kfit <- kmeans(DE[,2:37], 20, iter.max = 10000) # 20 cluster solution
+# # move k means cluster assignment over to DE data frame
+# DE$cluster <- kfit$cluster
+# # clean up the contrast names
+# comparisons <- colnames(DE)[2:37] %>% 
+#   gsub('_vs_','|vs|', .) %>% 
+#   gsub('_',' (',.) %>% 
+#   gsub('\\.Line|\\.Tissue',')',.) %>% 
+#   gsub('\\|vs\\|',' vs ',.) %>% 
+#   gsub('hTERT\\.Cell','hTERT',.)
+# colnames(DE)[2:37] <- comparisons
 ```
 
 ```{r, message = FALSE, fig.width=3, fig.height=3}
-for (i in 1:20){
-  cluster_num = i
-  comparisons_to_highlight <- DE %>% 
-    filter(cluster==cluster_num) %>% 
-    select(1:36) %>% 
-    summarise_each(funs(mean)) %>% t() %>% data.frame() %>% 
-    rownames_to_column('Comparison')  %>% 
-    `colnames<-`(c('Comparison', 'Mean')) %>% 
-    mutate(Tercile=ntile(Mean,n=3), Size=0) %>% 
-    mutate(Points=ifelse((abs(Mean)>2 & Tercile %in% c(1,3)),'red','white'))
-  superheat(DE %>% filter(cluster==cluster_num) %>% select(1:36), 
-            title = paste0('Cluster ',i),
-            pretty.order.rows = T, 
-            pretty.order.cols = F, 
-            bottom.label.text.angle  = 90,
-            bottom.label.text.size = 3,
-            bottom.label.size = 0.7,
-            left.label = 'none',
-            #heat.pal = c("#386cb0","#7fc97f","white"),
-            yt = comparisons_to_highlight$Size,
-            yt.obs.col = comparisons_to_highlight$Points,
-            yt.num.ticks = 0, yt.axis.name = '', yt.plot.size = 0.05)
-}
-# get correlations of each comparison
-DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
+# for (i in 1:20){
+#   cluster_num = i
+#   comparisons_to_highlight <- DE %>% 
+#     filter(cluster==cluster_num) %>% 
+#     select(1:36) %>% 
+#     summarise_each(funs(mean)) %>% t() %>% data.frame() %>% 
+#     rownames_to_column('Comparison')  %>% 
+#     `colnames<-`(c('Comparison', 'Mean')) %>% 
+#     mutate(Tercile=ntile(Mean,n=3), Size=0) %>% 
+#     mutate(Points=ifelse((abs(Mean)>2 & Tercile %in% c(1,3)),'red','white'))
+#   superheat(DE %>% filter(cluster==cluster_num) %>% select(1:36), 
+#             title = paste0('Cluster ',i),
+#             pretty.order.rows = T, 
+#             pretty.order.cols = F, 
+#             bottom.label.text.angle  = 90,
+#             bottom.label.text.size = 3,
+#             bottom.label.size = 0.7,
+#             left.label = 'none',
+#             #heat.pal = c("#386cb0","#7fc97f","white"),
+#             yt = comparisons_to_highlight$Size,
+#             yt.obs.col = comparisons_to_highlight$Points,
+#             yt.num.ticks = 0, yt.axis.name = '', yt.plot.size = 0.05)
+# }
+# # get correlations of each comparison
+# DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
 ```
