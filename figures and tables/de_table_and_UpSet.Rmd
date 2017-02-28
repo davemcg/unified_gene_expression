@@ -11,13 +11,71 @@ library(limma)
 library(DT)
 library(ReporteRs)
 load('~/git/unified_gene_expression/data/big_six_DE_correct.Rdata')
-load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
+load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata') #efit_all
 #source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
 #source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
 # for GO enrichement
 #background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
 options("ReporteRs-fontsize"=8, "ReporteRs-default-font"="Monaco")
 ```
+
+
+# all by all, focusing on eye vs body (10 tests)
+```{r, message = FALSE}
+logfc_setting = 2
+# find body tests
+body_positions <- grep('Body',colnames(efit_all))
+info <- summary(decideTests(efit_all, lfc=logfc_setting, p.value=0.01, adjust.method = 'fdr')) %>% 
+  tidy() %>% 
+  `colnames<-`(c("Log2FC", "Comparisons", "Count")) %>% 
+   filter(grepl('Body',Comparisons)) %>% 
+  mutate(Log2FC= rep(c(-logfc_setting,0,logfc_setting), 10)) %>% 
+   filter(Log2FC!=0) %>% 
+   separate(Comparisons, c('Comparison','Base'), sep='_vs_') %>% 
+   mutate(Comparison=gsub('_',' (',Comparison), 
+          Comparison=gsub('Adult.Tissue','adult',Comparison),
+          Comparison=gsub('Fetal.Tissue','fetal',Comparison),
+          Comparison=gsub('Stem.Cell.Line','stem cell',Comparison),
+          Comparison=gsub('Cell.Line','immortalized cell',Comparison),
+          Comparison=gsub('$',')', Comparison), 
+          Comparison=gsub('cell',' cell', Comparison)) %>% 
+   mutate(Base=gsub('_',' (',Base), 
+          Base=gsub('Adult.Tissue','adult',Base),
+          Base=gsub('Fetal.Tissue','fetal',Base),
+          Base=gsub('Stem.Cell.Line','stem cell',Base),
+          Base=gsub('Cell.Line','immortalized cell',Base),
+          Base=gsub('$',')', Base), 
+          Base=gsub('cell',' cell', Base), 
+          Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
+  mutate(Comparisons = paste(Comparison, Base, sep=' vs ')) %>% 
+  arrange(Comparison) %>% 
+  spread(Log2FC,Count) %>% 
+  select(Comparisons, `-2`, `2`) %>% 
+  `colnames<-`(c('Comparison','< -2', '> 2'))
+
+
+flex_table <- info %>% FlexTable(body.cell.props = cellProperties( padding = 2 ), 
+                        header.par.props = parProperties(text.align = "center" ), 
+                        body.par.props = parProperties(text.align = 'left'),
+                        header.columns = FALSE) %>% 
+  addHeaderRow(value = c("", "Log Fold Change"), colspan = c( 1, 2 ) ) %>% 
+  addHeaderRow(value = c('Comparison', '< -2', '> 2')) %>% 
+  setFlexTableWidths(widths = c(4, 1, 1) )  %>% 
+  setFlexTableBorders(footer = TRUE,
+                      inner.vertical = no_border, inner.horizontal = std_border,
+                      outer.vertical = no_border, outer.horizontal = big_border )
+
+flex_table[2,1:1, to="header", side = "top"] = no_border
+flex_table
+
+   
+```
+
+
+############################################
+# Analysis for the boutique eye vs eye tests
+############################################
+
 
 Overall counts up and down for the six tests
 ```{r, message = FALSE}
