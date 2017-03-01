@@ -1,0 +1,133 @@
+---
+title: "Word Cloud"
+output: html_notebook
+---
+
+```{r, message = FALSE}
+load('~/git/unified_gene_expression/data/go_enrichment_all_vs_all.Rdata') #all_vs_all
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(dplyr)
+```
+
+Collect all go term keywords and calculate frequencies
+```{r, message = FALSE}
+
+background_go_words <- function(go_enrichment, ontology){
+  all_keywords <-go_enrichment %>% filter(Ontology=='BP') %>% dplyr::select(`GO ID`, Term) %>% unique() %>% .[['Term']]
+  docs <- Corpus(VectorSource( wordStem(all_keywords, language = "english")))
+  # Convert the text to lower case
+  docs <- tm_map(docs, content_transformer(tolower))
+  # Remove numbers
+  docs <- tm_map(docs, removeNumbers)
+  # Remove english common stopwords
+  docs <- tm_map(docs, removeWords, stopwords("english"))
+  # Remove your own stop word
+  # specify your stopwords as a character vector
+  # docs <- tm_map(docs, removeWords, c("blabla1", "blabla2")) 
+  # Remove punctuations
+  docs <- tm_map(docs, removePunctuation)
+  # Eliminate extra white spaces
+  docs <- tm_map(docs, stripWhitespace)
+  
+  dtm <- TermDocumentMatrix(docs)
+  m <- as.matrix(dtm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  all_go <- data.frame(word = names(v),freq=v)
+  #head(d, 10)
+  all_go$ratio <- all_go$freq/sum(all_go$freq)
+  all_go
+}
+all_BP_go <- background_go_words(all_vs_all_go, 'BP')
+all_MF_go <- background_go_words(all_vs_all_go, 'MF')
+#Word cloud function
+cloud_maker <- function(word_vector, exclusion_words, max.words, all_go, title){
+  docs <- Corpus(VectorSource(word_vector))
+  docs <- tm_map(docs, content_transformer(tolower))
+  docs <- tm_map(docs, removeNumbers)
+  docs <- tm_map(docs, stripWhitespace)
+  docs <- tm_map(docs, removePunctuation)
+  docs <- tm_map(docs, removeWords, exclusion_words) 
+  dtm <- TermDocumentMatrix(docs)
+  m <- as.matrix(dtm)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  d <- data.frame(word = names(v),freq=v)
+  d$ratio <- d$freq/sum(d$freq)
+  calculated <- left_join(d, all_go, by='word') %>% mutate(delta_ratio = ratio.x-ratio.y, transformed_delta =log10(delta_ratio+1)*1e6) %>% filter(transformed_delta>0)
+  set.seed(1234)
+  
+  layout(matrix(c(1, 2), nrow=2), heights=c(1, 4))
+  par(mar=rep(0, 4))
+  plot.new()
+  text(x=0.5, y=0.5, title)
+
+  print(wordcloud(words = calculated$word, scale=c(3,1),freq = calculated$transformed_delta, min.freq = 1,
+          max.words=max.words, random.order=FALSE, rot.per=0.35, 
+          colors=c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3"),
+          main="Title"))
+  calculated$word %>% data.frame()
+}
+```
+
+All Tests/Sets
+```{r, message = FALSE}
+all_vs_all_go %>% dplyr::select(Test, Set, Ontology) %>% unique()
+
+go_enrichment %>% dplyr::select(Test) %>% unique()
+```
+
+Counts for GO ontology across Set, Test, Ontology (BP Only)
+```{r, message = FALSE}
+all_vs_all_go %>% 
+  separate(Set, c('Comparison','Base'), sep='_vs_') %>% 
+   mutate(Comparison=gsub('_',' (',Comparison), 
+          Comparison=gsub('Adult.Tissue','adult',Comparison),
+          Comparison=gsub('Fetal.Tissue','fetal',Comparison),
+          Comparison=gsub('Stem.Cell.Line','stem cell',Comparison),
+          Comparison=gsub('Cell.Line','immortalized cell',Comparison),
+          Comparison=gsub('$',')', Comparison), 
+          Comparison=gsub('cell',' cell', Comparison)) %>% 
+   mutate(Base=gsub('_',' (',Base), 
+          Base=gsub('Adult.Tissue','adult',Base),
+          Base=gsub('Fetal.Tissue','fetal',Base),
+          Base=gsub('Stem.Cell.Line','stem cell',Base),
+          Base=gsub('Cell.Line','immortalized cell',Base),
+          Base=gsub('$',')', Base), 
+          Base=gsub('cell',' cell', Base), 
+          Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
+  mutate(Comparisons = paste(Comparison, Base, sep=' vs ')) %>% 
+  group_by(Comparisons, Test) %>% 
+  filter(as.numeric(`P value (FDR)`)<0.01, Ontology=='BP') %>% 
+  summarise(Count=n())
+```
+
+Body only GO enrichment for BP
+```{r,fig.width=4,fig.height=4}
+
+all_vs_all_go %>%
+   filter(grepl('Body', Set)) %>% 
+   separate(Set, c('Comparison','Base'), sep='_vs_') %>% 
+   mutate(Comparison=gsub('_',' (',Comparison), 
+          Comparison=gsub('Adult.Tissue','adult',Comparison),
+          Comparison=gsub('Fetal.Tissue','fetal',Comparison),
+          Comparison=gsub('Stem.Cell.Line','stem cell',Comparison),
+          Comparison=gsub('Cell.Line','immortalized cell',Comparison),
+          Comparison=gsub('$',')', Comparison), 
+          Comparison=gsub('cell',' cell', Comparison)) %>% 
+   mutate(Base=gsub('_',' (',Base), 
+          Base=gsub('Adult.Tissue','adult',Base),
+          Base=gsub('Fetal.Tissue','fetal',Base),
+          Base=gsub('Stem.Cell.Line','stem cell',Base),
+          Base=gsub('Cell.Line','immortalized cell',Base),
+          Base=gsub('$',')', Base), 
+          Base=gsub('cell',' cell', Base), 
+          Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
+  mutate(Comparisons = ifelse(Test=='Up', paste(Comparison, Base, sep=' > '), paste(Comparison, Base, sep=' < '))) %>% 
+  group_by(Comparisons) %>% 
+  filter(as.numeric(`P value (FDR)`) < 0.01, Ontology=='BP') %>%
+  mutate(Title=Comparisons) %>% 
+  do(cloud_maker(.$Term,c('involved','process','regulation','negative','positive'),75,all_BP_go,.$Title))
+```
+
+
