@@ -15,9 +15,10 @@ load('~/git/unified_gene_expression/data/big_six_DE_correct.Rdata')
 load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
 source('~/git/unified_gene_expression/scripts/GO_enrichment.R')
 source('~/git/unified_gene_expression/scripts/GO_term_finder.R')
-# for GO enrichement
+# for GO enrichement, big six
 background_genes <- topTable(big_six[[1]], number=30000) %>% rownames_to_column('Gene') %>% dplyr::select(Gene)
-
+# for GO enrichment, all by all
+background_genes_all_by_all <- topTable(efit_all, number=30000)%>% rownames_to_column('Gene') %>% dplyr::select(Gene)
 options("ReporteRs-fontsize"=8, "ReporteRs-default-font"="Monaco")
 ```
 
@@ -47,7 +48,7 @@ set_maker2 <- function(list.of.all){
 Function to return gene list that are abs(logFC) > 1 and adj.P.Val < 0.05 for the different contrasts
 ```{r, messag= FALSE}
 # just up vs 'control' (right side of contrast)
-contrast_UPgene_lists <- function(limma_data){
+contrast_UPgene_lists <- function(limma_data, logFC){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
@@ -55,13 +56,13 @@ contrast_UPgene_lists <- function(limma_data){
     if(nrow(stats)==0){
       out_list[vector_of_comparisons[i]] <- list('')
       next}
-    stats_cut_down <- stats[stats[,'logFC'] > 1,]
+    stats_cut_down <- stats[stats[,'logFC'] > logFC,]
     out_list[vector_of_comparisons[i]] <- list(row.names(stats_cut_down))
     }
   out_list
 }
 # just down vs 'control' 
-contrast_DOWNgene_lists <- function(limma_data){
+contrast_DOWNgene_lists <- function(limma_data, logFC){
   vector_of_comparisons <- colnames(limma_data)
   out_list <- list()
   for (i in 1:length(vector_of_comparisons)){
@@ -69,7 +70,7 @@ contrast_DOWNgene_lists <- function(limma_data){
     if(nrow(stats)==0){
       out_list[vector_of_comparisons[i]] <- list('')
       next}
-    stats_cut_down <- stats[stats[,'logFC'] < -1,]
+    stats_cut_down <- stats[stats[,'logFC'] < -logFC,]
     out_list[vector_of_comparisons[i]] <- list(row.names(stats_cut_down))
     }
   out_list
@@ -77,7 +78,7 @@ contrast_DOWNgene_lists <- function(limma_data){
 ```
 
 
-
+GO printer
 ```{r}
 #GO printer
 go_printer <- function(go_frame, num_to_print, title){
@@ -111,7 +112,7 @@ go_printer2 <- function(go_frame, num_to_print, title){
 
 All GO comparison runner. Takes in the output from the set generator and makes does GO enrichment for all 6 unique categories (a, b, c, ab, bc, abc)
 ```{r, message = FALSE}
-all_go_tester <- function(test_set, test_name){
+all_go_tester <- function(test_set, test_name, background_genes){
   column_classes <- rep(x='character',11)
   column_names <- c("GO ID","P value","P value (FDR)","Odds Ratio","Expected Count","Count","Size","Term","Test", "Set", "Ontology")
   empty_frame <- read.table(text='', colClasses = column_classes, col.names = column_names)
@@ -150,7 +151,7 @@ Six DE tests:
 
 # 1. Cornea vs Retina vs RPE (all adult)
 ```{r, message = FALSE, fig.width=3, fig.height=3}
-testA_go_all_sets <- all_go_tester(set_maker2(test1_comps),'Test A')
+testA_go_all_sets <- all_go_tester(set_maker2(test1_comps),'Test A', background_genes)
 
 #go_printer(testA_go_all_sets %>% filter(Test=='Test A',Set=='b',Direction=='Down') %>%  dplyr::select(`GO BP ID`:Term),15, 'Test A - Set B Down')
 ```
@@ -158,12 +159,12 @@ testA_go_all_sets <- all_go_tester(set_maker2(test1_comps),'Test A')
 
 # 2. ESC vs RPE vs Retina (all Stem cell lines, non immortalized)
 ```{r, message = FALSE}
-testB_go_all_sets <- all_go_tester(set_maker2(test2_comps),'Test B')
+testB_go_all_sets <- all_go_tester(set_maker2(test2_comps),'Test B', background_genes)
 ```
 
 # 3. Adult RPE vs Fetal RPE vs Cell Line RPE
 ```{r}
-testC_go_all_sets <- all_go_tester(set_maker2(test3_comps),'Test C')
+testC_go_all_sets <- all_go_tester(set_maker2(test3_comps),'Test C', background_genes)
 
 #go_printer(testC_go_all_sets %>% filter(Test=='Test C',Set=='b',Direction=='Up',as.numeric(`P value (FDR)`)<0.05) %>%  dplyr::select(`GO BP ID`:Term),15, 'Test C - Set B Down')
 ```
@@ -171,8 +172,8 @@ testC_go_all_sets <- all_go_tester(set_maker2(test3_comps),'Test C')
 # 4. immortalized RPE vs Stem Cell Line RPE
 ```{r, messager = FALSE}
 colnames(big_six[[4]])
-test4_contrast_genes_up <-contrast_UPgene_lists(big_six[[4]])
-test4_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[4]])
+test4_contrast_genes_up <-contrast_UPgene_lists(big_six[[4]], 1)
+test4_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[4]], 1)
 testD_go_all_sets <- rbind(
                             GO_enrichment(test4_contrast_genes_up, background_genes, 'BP') %>% 
                               mutate(Test='Test D', Set='RPE (cell) > RPE (stem cell)', Ontology='BP') %>% 
@@ -191,8 +192,8 @@ testD_go_all_sets <- rbind(
 # 5. Adult Retina vs Stem Cell Line Retina
 ```{r, message =  FALSE}
 colnames(big_six[[5]])
-test5_contrast_genes_up <-contrast_UPgene_lists(big_six[[5]])
-test5_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[5]])
+test5_contrast_genes_up <-contrast_UPgene_lists(big_six[[5]], 1)
+test5_contrast_genes_down <-contrast_DOWNgene_lists(big_six[[5]], 1)
 testE_go_all_sets <- rbind(
                             GO_enrichment(test5_contrast_genes_up, background_genes, 'BP') %>% 
                               mutate(Test='Test E', Set='Retina > Retina (stem cell)', Ontology='BP') %>% 
@@ -212,7 +213,7 @@ testE_go_all_sets <- rbind(
 
 # 6. Adult Cornea vs Fetal Cornea vs Cell Line Cornea
 ```{r, message = FALSE}
-testF_go_all_sets <- all_go_tester(set_maker2(test6_comps),'Test F')
+testF_go_all_sets <- all_go_tester(set_maker2(test6_comps),'Test F', background_genes)
 ```
 
 # How to find what genes are the GO:ID
@@ -262,11 +263,22 @@ for (i in names(go_enrichment)) {
 # all by all GO
 #################
 
-Generate GO enrichment for all tests
+Generate GO enrichment for eye vs body
 ```{r, message = FALSE}
-go_up <- contrast_UPgene_lists(efit_all)
-go_down <- contrast_DOWNgene_lists(efit_all)
+up_gene_lists <- contrast_UPgene_lists(efit_all, 2)
+# only keep body comparisons
+# up_gene_lists <- up_gene_lists[grep('Body',names(contrast_UPgene_lists(efit_all, 2)))]
 
+down_gene_lists <- contrast_DOWNgene_lists(efit_all, 2)
+# only keep body comparisons
+# down_gene_lists <- down_gene_lists[grep('Body',names(contrast_DOWNgene_lists(efit_all, 2)))]
+
+go_up <- all_go_tester(up_gene_lists,'Up', background_genes_all_by_all)
+go_down <- all_go_tester(down_gene_lists,'Down', background_genes_all_by_all)
+
+all_vs_all_go <- rbind(go_up, go_down)
+
+all_vs_all_go %>% mutate(Set = ifelse(Test=='Down', gsub('_vs_',' < ', Set),gsub('_vs_',' > ', Set) )) %>% group_by(Set, Test, Ontology) %>% filter(as.numeric(`P value (FDR)`)<0.01) %>%  summarise(Count=n())
 ```
 
 RPE vs Retina adult __ VS __ RPE vs Retina stem
