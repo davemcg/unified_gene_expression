@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 ```{r, message = FALSE}
-load('~/git/unified_gene_expression/data/go_enrichment.Rdata')
+load('~/git/unified_gene_expression/data/go_enrichment.Rdata') #big_six
 library(tm)
 library(SnowballC)
 library(wordcloud)
