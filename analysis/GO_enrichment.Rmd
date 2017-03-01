@@ -257,6 +257,18 @@ for (i in names(go_enrichment)) {
 #write.csv(out_csv, file='~/Dropbox/Work/NEI/PROJECTS/mcgaughey/eyeIntegration/supplemental_table_s4.csv')
 ```
 
+
+#################
+# all by all GO
+#################
+
+Generate GO enrichment for all tests
+```{r, message = FALSE}
+go_up <- contrast_UPgene_lists(efit_all)
+go_down <- contrast_DOWNgene_lists(efit_all)
+
+```
+
 RPE vs Retina adult __ VS __ RPE vs Retina stem
 ```{r}
 
