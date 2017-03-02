@@ -188,7 +188,7 @@ colnames(distances) <- mean_coord[,1]
 row.names(distances) <- mean_coord[,1]
 superheat(distances, 
           #yr = mean_coord$variance,
-          heat.pal = c("#3eb9c4","#87cc5f","white"), # taken from theme_Publication.R
+          #heat.pal = c("#3eb9c4","#87cc5f","white"), # taken from theme_Publication.R
           col.dendrogram = T,
           pretty.order.rows = T, 
           pretty.order.cols = T,
