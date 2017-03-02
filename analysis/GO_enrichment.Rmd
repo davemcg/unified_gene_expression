@@ -279,6 +279,8 @@ go_down <- all_go_tester(down_gene_lists,'Down', background_genes_all_by_all)
 all_vs_all_go <- rbind(go_up, go_down)
 
 all_vs_all_go %>% mutate(Set = ifelse(Test=='Down', gsub('_vs_',' < ', Set),gsub('_vs_',' > ', Set) )) %>% group_by(Set, Test, Ontology) %>% filter(as.numeric(`P value (FDR)`)<0.01) %>%  summarise(Count=n())
+
+save(all_vs_all_go, file='~/git/unified_gene_expression/data/go_enrichment_all_vs_all.Rdata')
 ```
 
 RPE vs Retina adult __ VS __ RPE vs Retina stem
