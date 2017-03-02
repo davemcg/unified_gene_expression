@@ -27,8 +27,8 @@ nice_names <- all_by_all_names %>% data.frame() %>%
   mutate(Comparisons = paste(Comparison, Base, sep=' vs ')) %>% 
   mutate(Comparisons = gsub('  ',' ',Comparisons))
 
-de_comparison_contrast_names <- as.character(all_by_all_names$Comparisons)
-names(de_comparison_contrast_names) <- as.character(nice_names)
+de_comparison_contrast_names <- sort(as.character(all_by_all_names$Comparisons))
+de_comparison_contrast_names <- set_names(de_comparison_contrast_names, as.character(nice_names$Comparisons))
 
 
 save(de_comparison_contrast_names, file='data/de_comparison_name_list.Rdata')
