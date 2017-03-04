@@ -1,7 +1,7 @@
 ####### script to calculate dbscan clusters and build labels for interactive pagea
 
 library(dbscan)
-load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02.Rdata')
+load('~/git/unified_gene_expression/data/tsne_plotting_5_50_perplexity_2017-02__all_eye.Rdata')
 
 
 
@@ -53,11 +53,11 @@ for (i in 5:50){
   all_tsne_plot_prepped <- bind_rows(all_tsne_plot_prepped, tsne_plot_prep)
 }
 all_tsne_plot_prepped <- all_tsne_plot_prepped %>% dplyr::slice(-1) %>% select(X1,X2, Cluster, Tissue, Sub_Tissue, Label, perplexity)
-save(all_tsne_plot_prepped, file='~/git/unified_gene_expression/interactive_page/all_tsne_plot_prepped.Rdata')
+save(all_tsne_plot_prepped, file='~/git/unified_gene_expression/interactive_page/all_tsne_plot_prepped__2017_02.Rdata')
 
-# the_plot<-ggplot(tsne_plot_prep,aes(x=X1,y=X2, label=Label)) + 
-#   ggtitle(paste0('Pan tissue t-sne')) +
-#   geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
-#   geom_point(size=1, alpha=0.2)   +
-#   theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4))
+the_plot<-ggplot(tsne_plot_prep,aes(x=X1,y=X2, label=Label)) +
+  ggtitle(paste0('Pan tissue t-sne')) +
+  geom_point(size=4, alpha=0.2, aes(colour=Cluster)) +
+  geom_point(size=1, alpha=0.2)   +
+  theme_Publication() + guides(colour=guide_legend(nrow=4), shape=guide_legend(nrow=4))
 

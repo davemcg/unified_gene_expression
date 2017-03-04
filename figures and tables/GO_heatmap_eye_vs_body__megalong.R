@@ -1,7 +1,7 @@
 #mega long heatmap code 
 # too slow to have in rmarkdown
 
-load('../data/go_enrichment_all_vs_all.Rdata')
+load('~/git/unified_gene_expression/data/go_enrichment_all_vs_all.Rdata')
 library(superheat)
 library(tidyverse)
 
@@ -40,7 +40,7 @@ wide_data <- all_vs_all_go %>%
          Base=gsub('cell',' cell', Base), 
          Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
   mutate(Comparisons = ifelse(Test=='Up', paste(Comparison, Base, sep=' > '), paste(Comparison, Base, sep=' < '))) %>% 
-  mutate(`-log10(FDR)` = -log10(as.numeric(`P value (FDR)`))) %>% 
+  mutate(`-log10(FDR)` = -log(as.numeric(`P value (FDR)`), base=10)) %>% 
   mutate(GO = paste(`GO ID`, Term, sep=' ')) %>% 
   dplyr::select(Comparisons, GO, `-log10(FDR)`) %>% 
   spread(Comparisons, `-log10(FDR)`, fill=1)
@@ -50,14 +50,14 @@ superheat((wide_data[,2:ncol(wide_data)]),
           #heat.pal = c('#f7fbff','#deebf7','#c6dbef','#9ecae1','#6baed6','#4292c6','#2171b5','#08519c','#08306b'),
           #heat.pal=c("#984ea3","#47039FFF","#7301A8FF","#9C179EFF","#BD3786FF","#D8576BFF","#ED7953FF","#FA9E3BFF","#FDC926FF","#F0F921FF",'white'),
           #heat.pal = viridis(n=10, option = 'plasma'),
-          #heat.col.scheme = 
+          #heat.col.scheme =
           pretty.order.cols = T, force.left.label = T,
           grid.hline.col = 'white', grid.vline.col = 'white',
           pretty.order.rows = T, force.grid.hline = T,
-          scale = F, 
+          scale = F,
           bottom.label.text.angle = 90,
           left.label.size = 0.85,
-          bottom.label.size = 0.025, 
+          bottom.label.size = 0.025,
           col.dendrogram = F,
           left.label.text.alignment = "left",
           bottom.label.text.alignment = "right")
