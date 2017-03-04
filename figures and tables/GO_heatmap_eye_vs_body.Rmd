@@ -48,6 +48,7 @@ wide_data <- all_vs_all_go %>%
           Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
   mutate(Comparisons = ifelse(Test=='Up', paste(Comparison, Base, sep=' > '), paste(Comparison, Base, sep=' < '))) %>% 
   mutate(`-log10(FDR)` = -log10(as.numeric(`P value (FDR)`))) %>% 
+  mutate(`-log10(FDR)` = ifelse(`-log10(FDR)` > 40, 40, `-log10(FDR)`)) %>% 
   mutate(GO = paste(`GO ID`, Term, sep=' ')) %>% 
   dplyr::select(Comparisons, GO, `-log10(FDR)`) %>% 
   spread(Comparisons, `-log10(FDR)`, fill=1)
