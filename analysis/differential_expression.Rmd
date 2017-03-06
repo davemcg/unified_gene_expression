@@ -399,55 +399,40 @@ Ignore below for now
 
 Now kmeans cluster the DE genes into groups. First use scree plot to pick n.
 ```{r, message = FALSE}
-# set.seed(3939)
-# wss <- (nrow(DE[,1:36])-1)*sum(apply(DE[,1:36],2,var))
-# for (i in 2:80) wss[i] <- sum(kmeans(DE[,1:36],
-#   	centers=i, iter.max = 10000)$withinss)
-# plot(1:80, wss, type="b", xlab="Number of Clusters",
-#   ylab="Within groups sum of squares")
+ set.seed(3939)
+ wss <- (nrow(DE_55[,1:55])-1)*sum(apply(DE_55[,1:55],2,var))
+ for (i in 2:80) wss[i] <- sum(kmeans(DE_55[,1:55],
+   	centers=i, algorithm="MacQueen", iter.max = 10000)$withinss)
+ plot(1:80, wss, type="b", xlab="Number of Clusters",
+   ylab="Within groups sum of squares")
 ```
 
 Do kmeans with 20 groups
 ```{r, message = FALSE}
-# set.seed(9942389)
-# DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% rownames_to_column('Gene') %>% filter(adj.P.Val<0.01) %>% data.frame()
-# kfit <- kmeans(DE[,2:37], 20, iter.max = 10000) # 20 cluster solution
+ set.seed(9942389)
+ DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% rownames_to_column('Gene') %>% filter(adj.P.Val<0.01) %>% data.frame()
+ kfit <- kmeans(DE[,2:37], 20, iter.max = 10000, algorithm="MacQueen") # 20 cluster solution
 # # move k means cluster assignment over to DE data frame
-# DE$cluster <- kfit$cluster
-# # clean up the contrast names
-# comparisons <- colnames(DE)[2:37] %>% 
-#   gsub('_vs_','|vs|', .) %>% 
-#   gsub('_',' (',.) %>% 
-#   gsub('\\.Line|\\.Tissue',')',.) %>% 
-#   gsub('\\|vs\\|',' vs ',.) %>% 
-#   gsub('hTERT\\.Cell','hTERT',.)
-# colnames(DE)[2:37] <- comparisons
+ DE$cluster <- kfit$cluster
+ # clean up the contrast names
+ comparisons <- colnames(DE)[2:55] %>% 
+   gsub('_vs_','|vs|', .) %>% 
+   gsub('_',' (',.) %>% 
+   gsub('\\.Line|\\.Tissue',')',.) %>% 
+   gsub('\\|vs\\|',' vs ',.) %>% 
+   gsub('hTERT\\.Cell','hTERT',.)
+ colnames(DE)[2:55] <- comparisons
 ```
 
 ```{r, message = FALSE, fig.width=3, fig.height=3}
-# for (i in 1:20){
-#   cluster_num = i
-#   comparisons_to_highlight <- DE %>% 
-#     filter(cluster==cluster_num) %>% 
-#     select(1:36) %>% 
-#     summarise_each(funs(mean)) %>% t() %>% data.frame() %>% 
-#     rownames_to_column('Comparison')  %>% 
-#     `colnames<-`(c('Comparison', 'Mean')) %>% 
-#     mutate(Tercile=ntile(Mean,n=3), Size=0) %>% 
-#     mutate(Points=ifelse((abs(Mean)>2 & Tercile %in% c(1,3)),'red','white'))
-#   superheat(DE %>% filter(cluster==cluster_num) %>% select(1:36), 
-#             title = paste0('Cluster ',i),
-#             pretty.order.rows = T, 
-#             pretty.order.cols = F, 
-#             bottom.label.text.angle  = 90,
-#             bottom.label.text.size = 3,
-#             bottom.label.size = 0.7,
-#             left.label = 'none',
-#             #heat.pal = c("#386cb0","#7fc97f","white"),
-#             yt = comparisons_to_highlight$Size,
-#             yt.obs.col = comparisons_to_highlight$Points,
-#             yt.num.ticks = 0, yt.axis.name = '', yt.plot.size = 0.05)
-# }
+superheat(DE %>% dplyr::select(2:56),
+          title = 'Cluster ',
+          pretty.order.rows = T, membership.rows = DE$cluster,
+          pretty.order.cols = T,
+          bottom.label.text.angle  = 90,
+          bottom.label.text.size = 3, grid.hline.col = 'white',
+          bottom.label.size = 0.3, left.label.size=0.02, 
+          force.left.label = TRUE, smooth.heat = TRUE)
 # # get correlations of each comparison
 # DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
 ```
