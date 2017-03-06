@@ -22,6 +22,10 @@ options("ReporteRs-fontsize"=8, "ReporteRs-default-font"="Monaco")
 
 # all by all, focusing on eye vs body (10 tests)
 ```{r, message = FALSE}
+no_border = borderProperties( width = 0 )
+big_border = borderProperties( width = 2 )
+std_border = borderProperties( width = 1 )
+
 logfc_setting = 2
 # find body tests
 body_positions <- grep('Body',colnames(efit_all))
@@ -106,9 +110,7 @@ colnames(test_summaries)<- c('Comparison','Reference', 'LogFC < -1', 'LogFC > 1'
 Format table 
 http://davidgohel.github.io/ReporteRs/articles/flextable_examples.html
 ```{r}
-no_border = borderProperties( width = 0 )
-big_border = borderProperties( width = 2 )
-std_border = borderProperties( width = 1 )
+
     
 the_table <- test_summaries %>% 
   mutate(Test=c('A','A','A','B','B','B','C','C','C','D','E','F','F','F')) %>% 
