@@ -90,7 +90,7 @@ tsne_plot %>% left_join(., core_tight) %>%
 
 
 Plot pan-human tissue expression
-```{r, fig.width=3.1, fig.height=3.6}
+```{r, fig.width=3.2, fig.height=3.5}
 set.seed(23235)
 eye_and_gtex_samples <- core_tight %>% 
   filter(sample_accession %in% colnames(lengthScaledTPM_processed)) %>% 
@@ -186,7 +186,7 @@ mean_coord <- long_tsne_plot %>%
 distances <- as.matrix(dist(mean_coord[,2:3])) %>% data.frame() 
 colnames(distances) <- mean_coord[,1]                     
 row.names(distances) <- mean_coord[,1]
-superheat(distances, 
+superheat(-distances, 
           #yr = mean_coord$variance,
           #heat.pal = c("#3eb9c4","#87cc5f","white"), # taken from theme_Publication.R
           col.dendrogram = T,
