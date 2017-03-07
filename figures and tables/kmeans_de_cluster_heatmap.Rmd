@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message = FALSE}
+load('~/git/unified_gene_expression/data/limma_voom_DE_all_by_all.Rdata')
+library(tidyverse)
+
+ DE <- topTableF(efit_all,number=300000, adjust.method = 'fdr', lfc = 2) %>% rownames_to_column('Gene') %>% filter(adj.P.Val<0.01) %>% data.frame()
+
+```
+
+Now kmeans cluster the DE genes into groups. First use scree plot to pick n.
+```{r, message = FALSE}
+ set.seed(3939)
+ wss <- (nrow(DE[,2:56])-1)*sum(apply(DE[,2:56],2,var))
+ for (i in 2:100) wss[i] <- sum(kmeans(DE[,2:56],
+   	centers=i, algorithm="MacQueen", iter.max = 10000)$withinss)
+ plot(1:100, wss, type="b", xlab="Number of Clusters",
+   ylab="Within groups sum of squares")
+```
+
+Do kmeans with 20 groups
+```{r, message = FALSE}
+ set.seed(9942389)
+ kfit <- kmeans(DE[,2:56], 20, iter.max = 10000, algorithm="MacQueen") # 20 cluster solution
+# # move k means cluster assignment over to DE data frame
+ DE$cluster <- kfit$cluster
+ # clean up the contrast names
+ comparisons <- colnames(DE) %>% data.frame() %>% slice(2:56)
+ colnames(comparisons) <- 'Comparisons'
+
+ 
+ comparisons <- comparisons %>% separate(Comparisons, c('Comparison','Base'), sep='_vs_') %>% 
+  mutate(Comparison=gsub('_',' (',Comparison), 
+          Comparison=gsub('Adult.Tissue','adult',Comparison),
+          Comparison=gsub('Fetal.Tissue','fetal',Comparison),
+          Comparison=gsub('Stem.Cell.Line','stem cell',Comparison),
+          Comparison=gsub('Cell.Line','immortalized cell',Comparison),
+          Comparison=gsub('$',')', Comparison), 
+          Comparison=gsub('cell',' cell', Comparison)) %>% 
+  mutate(Base=gsub('_',' (',Base), 
+          Base=gsub('Adult.Tissue','adult',Base),
+          Base=gsub('Fetal.Tissue','fetal',Base),
+          Base=gsub('Stem.Cell.Line','stem cell',Base),
+          Base=gsub('Cell.Line','immortalized cell',Base),
+          Base=gsub('$',')', Base), 
+          Base=gsub('cell',' cell', Base), 
+          Base=gsub('Body \\(Tissue\\)','Body (adult)',Base)) %>% 
+  mutate(Comparisons = paste(Comparison, Base, sep=' vs '))
+ colnames(DE)[2:56] <- comparisons$Comparisons
+```
+
+```{r, message = FALSE, fig.width=7, fig.height=10}
+superheat(DE %>% dplyr::select(2:56),
+          title = 'Cluster',
+          pretty.order.rows = T, membership.rows = DE$cluster,
+          pretty.order.cols = T,
+          bottom.label.text.angle  = 90,
+          bottom.label.text.size = 3, grid.hline.col = 'white',
+          bottom.label.size = 0.4, left.label.size=0.02, 
+          force.left.label = TRUE, smooth.heat = TRUE)
+# # get correlations of each comparison
+# DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
+```
