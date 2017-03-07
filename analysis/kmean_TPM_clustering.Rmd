@@ -28,7 +28,7 @@ eye_TPM<- lengthScaledTPM_processed[,eye_samples]
 Reshape to make tall and summarise by tissue then spread again for superheat
 
 ```{r, message = FALSE}
-tall_summary_TPM <- eye_TPM %>% 
+TPM_frame <- eye_TPM %>% 
   data.frame() %>% 
   rownames_to_column('Gene.Name') %>% 
   gather(sample_accession, value, -Gene.Name) %>% 
@@ -44,8 +44,15 @@ tall_summary_TPM <- eye_TPM %>%
 
 Quick Superheat plot
 ```{r, message = FALSE}
+set.seed(792534)
+kfit <- kmeans(log2(TPM_frame[,2:ncol(TPM_frame)]+1), 50, iter.max = 10000, algorithm="MacQueen")
+TPM_frame$Cluster <- kfit$cluster
+
 superheat(log2(tall_summary_TPM[,2:ncol(tall_summary_TPM)]+1), 
-          n.clusters.rows = 20, 
+          membership.rows = TPM_frame$Cluster,
           smooth.heat = T, 
-          pretty.order.cols = T)
+          pretty.order.cols = T, 
+          bottom.label.text.angle  = 90,
+          bottom.label.text.size = 3, 
+          grid.hline.col = 'white', grid.vline.col = 'white')
 ```
