@@ -64,3 +64,24 @@ superheat(DE %>% dplyr::select(2:56),
 # # get correlations of each comparison
 # DE %>% filter(cluster==3) %>% select(1:36) %>% summarise_each(funs(var))
 ```
+
+
+Case study example for DE:
+ESC -> Stem cell Retina -> Adult Retina
+ESC -> Stem cell RPE -> Adult RPE
+
+Similarities and differences for the differentiation process 
+```{r, message = FALSE}
+# grab the right tests
+tests <- c('ESC_Stem.Cell.Line_vs_RPE_Stem.Cell.Line', 'Retina_Stem.Cell.Line_vs_ESC_Stem.Cell.Line','Retina_Stem.Cell.Line_vs_Retina_Adult.Tissue','RPE_Adult.Tissue_vs_RPE_Stem.Cell.Line')
+
+
+set.seed(3939)
+ wss <- (nrow(DE[,tests])-1)*sum(apply(DE[,tests],2,var))
+ for (i in 2:100) wss[i] <- sum(kmeans(DE[,tests],
+   	centers=i, algorithm="MacQueen", iter.max = 10000)$withinss)
+ plot(1:100, wss, type="b", xlab="Number of Clusters",
+   ylab="Within groups sum of squares")
+ 
+ 
+```
